@@ -164,7 +164,7 @@ const TREES = Array.from({length:14}, (_, i) => ({
 }));
 
 function drawGarden(t) {
-  bgCv.width = W; bgCv.height = H;
+  bgCtx.clearRect(0, 0, W, H);
 
   // Sky gradient
   const sky = bgCtx.createLinearGradient(0, 0, 0, H * 0.52);
@@ -804,32 +804,56 @@ const K=0.052, DMP=0.79;
 const ptr = {x:cx,y:cy,vx:0,vy:0,speed:0};
 let pullMode=false, grabbedCard=null;
 
+// ─── Landmark smoothing state ─────────────────────────────────────────────────
+let smoothLM = null;          // EMA-smoothed landmark array
+const LM_SMOOTH  = 0.38;      // landmark EMA alpha  (0=frozen, 1=raw)
+const PTR_SMOOTH = 0.26;      // pointer EMA alpha   (lower = silkier, more lag)
+let noHandFrames = 0;         // grace period before releasing grab on lost tracking
+const NO_HAND_GRACE = 10;     // frames before we actually release
+let smoothSpeed  = 0;         // velocity magnitude, also EMA-smoothed
+
+function applyLMSmooth(raw) {
+  if (!smoothLM || smoothLM.length !== raw.length) {
+    smoothLM = raw.map(p => ({x:p.x, y:p.y, z:p.z||0}));
+    return smoothLM;
+  }
+  for (let i = 0; i < raw.length; i++) {
+    smoothLM[i].x += (raw[i].x - smoothLM[i].x) * LM_SMOOTH;
+    smoothLM[i].y += (raw[i].y - smoothLM[i].y) * LM_SMOOTH;
+    smoothLM[i].z += ((raw[i].z||0) - smoothLM[i].z) * LM_SMOOTH;
+  }
+  return smoothLM;
+}
+
 function tick(t) {
   ARRS[currentArr](cards, t);
   const mx=ptr.x, my=ptr.y, spd=ptr.speed;
   cards.forEach(c => {
     if (c===grabbedCard) {
-      c.vx=(mx-c.x)*0.32; c.vy=(my-c.y)*0.32;
+      // Damped spring follow — smooth pull, no snap
+      const dx=mx-c.x, dy=my-c.y;
+      c.vx = c.vx*0.55 + dx*0.22;
+      c.vy = c.vy*0.55 + dy*0.22;
       c.x+=c.vx; c.y+=c.vy;
-      c.rotX*=0.85; c.rotY*=0.85; c.scale=c.scale*0.9+1.09*0.1;
+      c.rotX*=0.85; c.rotY*=0.85; c.scale=c.scale*0.92+1.08*0.08;
     } else {
       c.vx=(c.vx+(c.hx-c.x)*K*(0.65+0.5*c.depth))*DMP;
       c.vy=(c.vy+(c.hy-c.y)*K*(0.65+0.5*c.depth))*DMP;
-      const dx=mx-c.x, dy=my-c.y, infl=Math.max(0,1-Math.hypot(dx,dy)/210);
-      if (pullMode&&infl>0.1) { c.vx+=dx*0.034*infl; c.vy+=dy*0.034*infl; }
+      const dx=mx-c.x, dy=my-c.y, infl=Math.max(0,1-Math.hypot(dx,dy)/200);
+      if (pullMode&&infl>0.1) { c.vx+=dx*0.030*infl; c.vy+=dy*0.030*infl; }
       else if (spd>3.5&&infl>0.04) {
-        const ang=Math.atan2(dy,dx), push=spd*0.21*infl;
+        const ang=Math.atan2(dy,dx), push=spd*0.18*infl;
         c.vx-=Math.cos(ang)*push; c.vy-=Math.sin(ang)*push;
       }
       c.x+=c.vx; c.y+=c.vy;
-      const tilt=Math.min(infl*14,10);
-      c.rotX=c.rotX*0.88+(-((my-cy)/(H/2))*tilt)*0.12;
-      c.rotY=c.rotY*0.88+(((mx-cx)/(W/2))*tilt)*0.12;
-      c.scale=c.scale*0.93+(1+infl*0.055)*0.07;
+      const tilt=Math.min(infl*12,9);
+      c.rotX=c.rotX*0.90+(-((my-cy)/(H/2))*tilt)*0.10;
+      c.rotY=c.rotY*0.90+(((mx-cx)/(W/2))*tilt)*0.10;
+      c.scale=c.scale*0.94+(1+infl*0.05)*0.06;
     }
     const fx=Math.cos(t*c.floatFreq+c.phase)*c.floatAmp*0.4;
     const fy=Math.sin(t*c.floatFreq*1.3+c.phase)*c.floatAmp;
-    c.el.classList.toggle('hovered', Math.hypot(mx-c.x,my-c.y)<200 && c!==grabbedCard);
+    c.el.classList.toggle('hovered', Math.hypot(mx-c.x,my-c.y)<140 && c!==grabbedCard);
     c.el.classList.toggle('grabbed', c===grabbedCard);
     c.el.style.transform=
       `translate(calc(${c.x+fx}px - 50%), calc(${c.y+fy}px - 50%))
@@ -884,13 +908,18 @@ const TOUCH_MAP = {
 };
 const TOUCH_ST={}, TOUCH_CD={};
 
+// Hysteresis thresholds — wider release zone prevents boundary flicker
+const TOUCH_ON  = 0.060;
+const TOUCH_OFF = 0.082;
+
 function checkTouch(lm,i1,i2,key) {
-  const td=Math.hypot(lm[i1].x-lm[i2].x,lm[i1].y-lm[i2].y);
-  const on=td<0.065, was=TOUCH_ST[key]||false;
-  if (on&&!was&&(!TOUCH_CD[key]||TOUCH_CD[key]<=0)) {
-    TOUCH_ST[key]=true; TOUCH_CD[key]=22; return true;
+  const td  = Math.hypot(lm[i1].x-lm[i2].x, lm[i1].y-lm[i2].y);
+  const was = TOUCH_ST[key] || false;
+  const on  = td < (was ? TOUCH_OFF : TOUCH_ON);   // hysteresis
+  if (on && !was && (!TOUCH_CD[key] || TOUCH_CD[key]<=0)) {
+    TOUCH_ST[key]=true; TOUCH_CD[key]=28; return true;
   }
-  if (!on&&was) TOUCH_ST[key]=false;
+  if (!on && was) TOUCH_ST[key]=false;
   if (TOUCH_CD[key]>0) TOUCH_CD[key]--;
   return false;
 }
@@ -919,25 +948,32 @@ function classifyGesture(lm) {
   return 'none';
 }
 
-let handActive=false, gestHold=0, lastGest='none';
+let handActive=false, gestHold=0, lastGest='none', confirmedGest='none';
 
 function onHandResults(results) {
-  camCv.width  = videoEl.videoWidth  || 320;
-  camCv.height = videoEl.videoHeight || 240;
+  // Sync cam canvas size once per resolution change
+  const vw = videoEl.videoWidth||320, vh = videoEl.videoHeight||240;
+  if (camCv.width!==vw || camCv.height!==vh) { camCv.width=vw; camCv.height=vh; }
   camCtx.clearRect(0,0,camCv.width,camCv.height);
 
   if (!results.multiHandLandmarks?.length) {
-    handActive=false; grabbedCard=null; pullMode=false;
-    document.getElementById('cam-label').textContent='○ SEARCHING';
-    document.getElementById('hand-ptr').style.display='none';
+    noHandFrames++;
+    if (noHandFrames >= NO_HAND_GRACE) {
+      handActive=false; grabbedCard=null; pullMode=false; smoothLM=null;
+      document.getElementById('cam-label').textContent='○ SEARCHING';
+      document.getElementById('hand-ptr').style.display='none';
+    }
     return;
   }
-
+  noHandFrames=0;
   handActive=true;
   document.getElementById('cam-label').textContent='● TRACKING';
-  const lm=results.multiHandLandmarks[0];
+
+  // Apply per-landmark EMA smoothing before any logic
+  const lm = applyLMSmooth(results.multiHandLandmarks[0]);
   const cw=camCv.width, ch=camCv.height;
 
+  // Draw skeleton on pip cam
   CONN.forEach(([a,b])=>{
     camCtx.beginPath();
     camCtx.moveTo(lm[a].x*cw,lm[a].y*ch);
@@ -949,33 +985,41 @@ function onHandResults(results) {
     camCtx.fillStyle='rgba(220,255,200,0.9)'; camCtx.fill();
   });
 
-  // Map index tip → screen
-  const ix=(1-lm[8].x)*W, iy=lm[8].y*H;
-  ptr.vx=ix-ptr.x; ptr.vy=iy-ptr.y; ptr.speed=Math.hypot(ptr.vx,ptr.vy);
-  ptr.x=ix; ptr.y=iy;
+  // ── Pointer: EMA on screen coords → silky movement ──────────────────────────
+  const rawX = (1-lm[8].x)*W, rawY = lm[8].y*H;
+  const tX = ptr.x + (rawX - ptr.x) * PTR_SMOOTH;
+  const tY = ptr.y + (rawY - ptr.y) * PTR_SMOOTH;
+  const dX = tX - ptr.x, dY = tY - ptr.y;
+  // EMA on speed so card-push force doesn't spike on single noisy frames
+  smoothSpeed = smoothSpeed * 0.72 + Math.hypot(dX, dY) * 0.28;
+  ptr.vx=dX; ptr.vy=dY; ptr.speed=smoothSpeed;
+  ptr.x=tX; ptr.y=tY;
+
   const hp=document.getElementById('hand-ptr');
-  hp.style.display='block'; hp.style.left=ix+'px'; hp.style.top=iy+'px';
+  hp.style.display='block'; hp.style.left=tX+'px'; hp.style.top=tY+'px';
 
+  // ── Gesture debounce: require 4 steady frames before committing ──────────────
   const g=classifyGesture(lm);
-  document.getElementById('hud-g').textContent=g.toUpperCase();
-  if(g===lastGest) gestHold++; else{gestHold=0;lastGest=g;}
+  if (g===lastGest) { gestHold++; } else { gestHold=0; lastGest=g; }
+  if (gestHold===4) { confirmedGest=g; document.getElementById('hud-g').textContent=g.toUpperCase(); }
 
+  // ── Touch finger pairs (on smoothed LM) ─────────────────────────────────────
   [[4,8,'thumb+index'],[4,12,'thumb+middle'],[4,16,'thumb+ring'],[4,20,'thumb+pinky'],
    [8,12,'index+middle'],[8,16,'index+ring'],[8,20,'index+pinky'],
    [12,16,'middle+ring'],[16,20,'ring+pinky']].forEach(([i1,i2,key])=>{
-    if(checkTouch(lm,i1,i2,key)&&TOUCH_MAP[key]) {
+    if (checkTouch(lm,i1,i2,key) && TOUCH_MAP[key]) {
       const m=TOUCH_MAP[key]; flash(m.label); execTouch(m.action,lm);
     }
   });
 
-  if(!TOUCH_ST['thumb+index']){pullMode=false;grabbedCard=null;}
+  if (!TOUCH_ST['thumb+index']) { pullMode=false; grabbedCard=null; }
 }
 
 // ─── Camera start ─────────────────────────────────────────────────────────────
 
 function startCamera() {
   const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-  hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.72,minTrackingConfidence:0.6});
+  hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.68,minTrackingConfidence:0.55});
   hands.onResults(onHandResults);
   const cam=new Camera(videoEl,{
     onFrame:async()=>{ camCv.width=videoEl.videoWidth||320; camCv.height=videoEl.videoHeight||240; await hands.send({image:videoEl}); },
@@ -1003,7 +1047,10 @@ window.addEventListener('keydown',e=>{
   if(e.key==='Tab'){e.preventDefault();arrIdx=(arrIdx+1)%ARR_KEYS.length;setArr(ARR_KEYS[arrIdx]);}
 });
 
-window.addEventListener('resize',()=>{W=innerWidth;H=innerHeight;cx=W/2;cy=H/2;});
+window.addEventListener('resize',()=>{
+  W=innerWidth; H=innerHeight; cx=W/2; cy=H/2;
+  bgCv.width=W; bgCv.height=H;
+});
 
 // ─── Main loop ────────────────────────────────────────────────────────────────
 
@@ -1014,6 +1061,7 @@ function loop(ts) {
   tick(ts);
 }
 
+bgCv.width=W; bgCv.height=H;
 buildCards();
 setArr('drift');
 requestAnimationFrame(loop);
