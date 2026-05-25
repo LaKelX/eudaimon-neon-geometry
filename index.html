@@ -10,7 +10,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:none; user-select:none; }
 
-#bg { position:fixed; inset:0; z-index:0; }
+#bg    { position:fixed; inset:0; z-index:0; }
 #stage { position:fixed; inset:0; z-index:10; }
 
 /* ── Glass cards ── */
@@ -26,7 +26,7 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
     inset 0 1px 0 rgba(255,255,255,0.20),
     inset 0 -1px 0 rgba(0,0,0,0.06);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  pointer-events:all; will-change:transform; overflow:hidden;
+  pointer-events:none; will-change:transform; overflow:hidden;
   transition:border-color .4s, box-shadow .45s;
 }
 .card::before {
@@ -41,27 +41,6 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 .card.garden  { border-color:rgba(255,192,172,0.24); background:rgba(255,238,228,0.07); }
 .card.garden::before { background:linear-gradient(90deg, transparent, rgba(255,170,148,0.38), transparent); }
 
-.card.hovered {
-  box-shadow:0 10px 38px rgba(0,0,0,0.20), inset 0 1px 0 rgba(255,255,255,0.26) !important;
-}
-.card.divine.hovered  {
-  border-color:rgba(255,208,60,0.52) !important;
-  box-shadow:0 12px 44px rgba(195,150,0,0.18), inset 0 1px 0 rgba(255,255,185,0.28) !important;
-}
-.card.forest.hovered  {
-  border-color:rgba(105,218,95,0.50) !important;
-  box-shadow:0 12px 44px rgba(45,155,45,0.15), inset 0 1px 0 rgba(185,255,185,0.22) !important;
-}
-.card.garden.hovered  {
-  border-color:rgba(255,170,148,0.50) !important;
-  box-shadow:0 12px 44px rgba(195,90,70,0.15), inset 0 1px 0 rgba(255,210,200,0.22) !important;
-}
-.card.grabbed {
-  border-color:rgba(170,222,255,0.54) !important;
-  box-shadow:0 16px 52px rgba(85,172,255,0.20) !important;
-}
-
-/* Art fills the card, content overlays */
 .card-art { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
 .card-content {
   position:relative; z-index:2;
@@ -94,23 +73,19 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 .card-symbol { font-size:32px; color:rgba(255,255,255,0.70); line-height:1; text-shadow:0 2px 10px rgba(0,0,0,0.4); }
 
 /* ── Pip cam ── */
-#cam-wrap { position:fixed; bottom:22px; right:22px; width:186px; height:140px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.18); z-index:200; backdrop-filter:blur(4px); }
+#cam-wrap   { position:fixed; bottom:22px; right:22px; width:186px; height:140px; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.18); z-index:200; backdrop-filter:blur(4px); }
 #cam-video  { position:absolute; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); opacity:0.55; }
 #cam-canvas { position:absolute; width:100%; height:100%; transform:scaleX(-1); }
 #cam-label  { position:absolute; bottom:7px; left:9px; font-family:'Courier New',monospace; font-size:7px; letter-spacing:.14em; color:rgba(255,255,255,0.45); }
 
-/* ── Hand pointer ── */
-#hand-ptr {
+/* ── Gesture glyph (replaces cursor) ── */
+#gest-glyph {
   position:fixed; pointer-events:none; z-index:150;
-  width:9px; height:9px; border-radius:50%;
-  background:rgba(255,255,255,0.82);
-  box-shadow:0 0 0 5px rgba(255,255,255,0.10), 0 0 18px rgba(255,255,255,0.32);
-  transform:translate(-50%,-50%); display:none;
-  transition:background .18s, box-shadow .18s;
-}
-#hand-ptr.grabbing {
-  background:rgba(165,225,255,0.92);
-  box-shadow:0 0 0 7px rgba(140,205,255,0.14), 0 0 22px rgba(140,205,255,0.42);
+  bottom:172px; right:22px; width:186px;
+  font-family:'Courier New',monospace; font-size:7px; letter-spacing:.22em;
+  color:rgba(255,255,255,0.28); text-align:center;
+  text-shadow:0 1px 4px rgba(0,0,0,0.4);
+  transition:color .3s;
 }
 
 /* ── UI ── */
@@ -131,6 +106,13 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 .perm-btn:hover { border-color:rgba(180,230,140,0.5); color:rgba(200,255,180,0.8); }
 .perm-skip { background:none; border:none; cursor:pointer; font-family:'Courier New',monospace; font-size:7px; letter-spacing:.14em; color:rgba(255,255,255,0.18); }
 .perm-skip:hover { color:rgba(255,255,255,0.38); }
+
+/* ── Gesture hint bar (bottom left) ── */
+#hints {
+  position:fixed; bottom:24px; left:24px; pointer-events:none; z-index:100;
+  font-family:'Courier New',monospace; font-size:6.5px; letter-spacing:.14em;
+  line-height:2.0; color:rgba(255,255,255,0.18); text-shadow:0 1px 3px rgba(0,0,0,0.4);
+}
 </style>
 </head>
 <body>
@@ -143,13 +125,12 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 </div>
 
 <canvas id="bg"></canvas>
-<div id="hand-ptr"></div>
 <div id="touch-flash"></div>
 
 <div id="wordmark"><h1>Eudaimon</h1><p>Garden · 2026</p></div>
 <div id="hud">
   GESTURE &nbsp;<span class="v" id="hud-g">—</span><br>
-  TOUCH &nbsp;&nbsp;&nbsp;<span class="v" id="hud-t">—</span><br>
+  ORBIT &nbsp;&nbsp;&nbsp;<span class="v" id="hud-r">0°</span><br>
   LAYOUT &nbsp;&nbsp;<span class="v" id="hud-l">DRIFT</span>
 </div>
 
@@ -157,6 +138,18 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
   <video id="cam-video" autoplay muted playsinline></video>
   <canvas id="cam-canvas"></canvas>
   <div id="cam-label">○ SEARCHING</div>
+</div>
+<div id="gest-glyph">—</div>
+
+<div id="hints">
+  ✋ OPEN PALM — drift<br>
+  ✊ FIST — stack<br>
+  ✌ PEACE — fan<br>
+  🤘 ROCK — divine<br>
+  ☝ POINT — spiral<br>
+  🤏 PINCH — grid<br>
+  ↔ SWIPE — cycle layout<br>
+  ↻ ROTATE WRIST — orbit
 </div>
 
 <div id="stage"></div>
@@ -181,50 +174,45 @@ const BOKEH = Array.from({length:28}, () => ({
 }));
 
 const PETALS = Array.from({length:22}, () => ({
-  x: Math.random() * 1,
-  y: Math.random() * 1,
-  vx: (-0.4 + Math.random() * 0.8) * 0.0003,
-  vy: (0.15 + Math.random() * 0.5) * 0.0003,
-  rot: Math.random() * TAU,
-  rs: (Math.random() - 0.5) * 0.04,
-  w: 0.005 + Math.random() * 0.01,
-  h: 0.002 + Math.random() * 0.006,
-  a: 0.35 + Math.random() * 0.45,
-  hue: Math.random() < 0.6 ? 340 + Math.random()*25 : 30 + Math.random()*20,
+  x: Math.random(), y: Math.random(),
+  vx: (-0.4 + Math.random()*0.8)*0.0003,
+  vy: (0.15 + Math.random()*0.5)*0.0003,
+  rot: Math.random()*TAU,
+  rs: (Math.random()-0.5)*0.04,
+  w: 0.005 + Math.random()*0.01,
+  h: 0.002 + Math.random()*0.006,
+  a: 0.35 + Math.random()*0.45,
+  hue: Math.random()<0.6 ? 340+Math.random()*25 : 30+Math.random()*20,
 }));
 
-// Distant tree silhouettes (static positions)
-const TREES = Array.from({length:14}, (_, i) => ({
-  x: (i / 14) + (Math.random() * 0.06 - 0.03),
-  h: 0.12 + Math.random() * 0.10,
-  w: 0.018 + Math.random() * 0.022,
+const TREES = Array.from({length:14}, (_,i) => ({
+  x: (i/14)+(Math.random()*0.06-0.03),
+  h: 0.12+Math.random()*0.10,
+  w: 0.018+Math.random()*0.022,
 }));
 
 function drawGarden(t) {
   bgCtx.clearRect(0, 0, W, H);
 
-  // Sky gradient
-  const sky = bgCtx.createLinearGradient(0, 0, 0, H * 0.52);
+  const sky = bgCtx.createLinearGradient(0, 0, 0, H*0.52);
   sky.addColorStop(0,    '#f2d98a');
   sky.addColorStop(0.25, '#ddc878');
   sky.addColorStop(0.6,  '#b8cf8a');
   sky.addColorStop(1,    '#7aaa62');
-  bgCtx.fillStyle = sky; bgCtx.fillRect(0, 0, W, H * 0.52);
+  bgCtx.fillStyle = sky; bgCtx.fillRect(0, 0, W, H*0.52);
 
-  // Sun glow
-  const sunX = W * 0.68, sunY = H * 0.11;
-  const sg = bgCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H * 0.38);
-  sg.addColorStop(0,   'rgba(255,240,170,0.80)');
-  sg.addColorStop(0.22,'rgba(255,215,105,0.32)');
-  sg.addColorStop(1,   'rgba(255,190,60,0)');
+  const sunX = W*0.68, sunY = H*0.11;
+  const sg = bgCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H*0.38);
+  sg.addColorStop(0,    'rgba(255,240,170,0.80)');
+  sg.addColorStop(0.22, 'rgba(255,215,105,0.32)');
+  sg.addColorStop(1,    'rgba(255,190,60,0)');
   bgCtx.fillStyle = sg; bgCtx.fillRect(0, 0, W, H);
 
-  // Sun rays — thin golden wedges radiating outward
   bgCtx.save();
   for (let r = 0; r < 14; r++) {
-    const a = (r / 14) * TAU + Math.sin(t * 0.00012 + r * 0.9) * 0.018;
-    const len = W * 0.62, spread = 0.016 + (r % 3 === 0 ? 0.012 : 0);
-    const op  = r % 3 === 0 ? 0.058 : r % 3 === 1 ? 0.034 : 0.020;
+    const a   = (r/14)*TAU + Math.sin(t*0.00012+r*0.9)*0.018;
+    const len = W*0.62, spread = 0.016+(r%3===0?0.012:0);
+    const op  = r%3===0?0.058:r%3===1?0.034:0.020;
     const rg  = bgCtx.createLinearGradient(sunX, sunY, sunX+Math.cos(a)*len, sunY+Math.sin(a)*len);
     rg.addColorStop(0,    `rgba(255,244,190,${op*2.6})`);
     rg.addColorStop(0.18, `rgba(255,238,170,${op*1.4})`);
@@ -238,97 +226,69 @@ function drawGarden(t) {
   }
   bgCtx.restore();
 
-  // Ground
-  const gnd = bgCtx.createLinearGradient(0, H * 0.48, 0, H);
-  gnd.addColorStop(0,   '#5c9044');
-  gnd.addColorStop(0.2, '#4a7835');
-  gnd.addColorStop(0.55,'#386028');
-  gnd.addColorStop(1,   '#24401a');
-  bgCtx.fillStyle = gnd; bgCtx.fillRect(0, H * 0.48, W, H * 0.52);
+  const gnd = bgCtx.createLinearGradient(0, H*0.48, 0, H);
+  gnd.addColorStop(0,    '#5c9044');
+  gnd.addColorStop(0.2,  '#4a7835');
+  gnd.addColorStop(0.55, '#386028');
+  gnd.addColorStop(1,    '#24401a');
+  bgCtx.fillStyle = gnd; bgCtx.fillRect(0, H*0.48, W, H*0.52);
 
-  // Horizon mist
-  const mist = bgCtx.createLinearGradient(0, H * 0.43, 0, H * 0.56);
-  mist.addColorStop(0,   'rgba(218,232,200,0)');
-  mist.addColorStop(0.45,'rgba(224,236,210,0.42)');
-  mist.addColorStop(1,   'rgba(200,220,195,0)');
-  bgCtx.fillStyle = mist; bgCtx.fillRect(0, H * 0.43, W, H * 0.13);
+  const mist = bgCtx.createLinearGradient(0, H*0.43, 0, H*0.56);
+  mist.addColorStop(0,    'rgba(218,232,200,0)');
+  mist.addColorStop(0.45, 'rgba(224,236,210,0.42)');
+  mist.addColorStop(1,    'rgba(200,220,195,0)');
+  bgCtx.fillStyle = mist; bgCtx.fillRect(0, H*0.43, W, H*0.13);
 
-  // Distant trees
   TREES.forEach(tr => {
-    const tx = tr.x * W;
-    const ty = H * 0.48;
-    const tw = tr.w * W;
-    const th = tr.h * H;
+    const tx=tr.x*W, ty=H*0.48, tw=tr.w*W, th=tr.h*H;
     bgCtx.beginPath();
     bgCtx.moveTo(tx, ty);
-    bgCtx.lineTo(tx - tw * 0.5, ty - th * 0.55);
-    bgCtx.quadraticCurveTo(tx, ty - th, tx + tw * 0.5, ty - th * 0.55);
+    bgCtx.lineTo(tx-tw*0.5, ty-th*0.55);
+    bgCtx.quadraticCurveTo(tx, ty-th, tx+tw*0.5, ty-th*0.55);
     bgCtx.closePath();
-    bgCtx.fillStyle = 'rgba(26,52,18,0.55)';
-    bgCtx.fill();
-    bgCtx.fillStyle = 'rgba(26,52,18,0.35)';
-    bgCtx.fillRect(tx - tw * 0.12, ty - th * 0.55, tw * 0.24, th * 0.55);
+    bgCtx.fillStyle='rgba(26,52,18,0.55)'; bgCtx.fill();
+    bgCtx.fillStyle='rgba(26,52,18,0.35)';
+    bgCtx.fillRect(tx-tw*0.12, ty-th*0.55, tw*0.24, th*0.55);
   });
 
-  // Bokeh orbs (light through leaves)
   BOKEH.forEach(b => {
-    const bx = (b.x + Math.sin(t * b.spd + b.ph) * 0.04) * W;
-    const by = (b.y + Math.cos(t * b.spd * 0.7 + b.ph) * 0.025) * H;
-    const gr = bgCtx.createRadialGradient(bx, by, 0, bx, by, b.r);
-    gr.addColorStop(0,   `hsla(${b.hue},65%,84%,${b.a})`);
-    gr.addColorStop(1,   `hsla(${b.hue},55%,74%,0)`);
-    bgCtx.fillStyle = gr;
-    bgCtx.beginPath(); bgCtx.arc(bx, by, b.r, 0, TAU); bgCtx.fill();
+    const bx=(b.x+Math.sin(t*b.spd+b.ph)*0.04)*W;
+    const by=(b.y+Math.cos(t*b.spd*0.7+b.ph)*0.025)*H;
+    const gr=bgCtx.createRadialGradient(bx,by,0,bx,by,b.r);
+    gr.addColorStop(0, `hsla(${b.hue},65%,84%,${b.a})`);
+    gr.addColorStop(1, `hsla(${b.hue},55%,74%,0)`);
+    bgCtx.fillStyle=gr;
+    bgCtx.beginPath(); bgCtx.arc(bx,by,b.r,0,TAU); bgCtx.fill();
   });
 
-  // Floating petals
   PETALS.forEach(p => {
-    p.x = (p.x + p.vx + 1) % 1;
-    p.y = (p.y + p.vy + 1) % 1;
-    p.rot += p.rs;
+    p.x=(p.x+p.vx+1)%1; p.y=(p.y+p.vy+1)%1; p.rot+=p.rs;
     bgCtx.save();
-    bgCtx.translate(p.x * W, p.y * H);
-    bgCtx.rotate(p.rot);
-    bgCtx.beginPath();
-    bgCtx.ellipse(0, 0, p.w * W, p.h * W, 0, 0, TAU);
-    bgCtx.fillStyle = `hsla(${p.hue},55%,84%,${p.a})`;
-    bgCtx.fill();
+    bgCtx.translate(p.x*W, p.y*H); bgCtx.rotate(p.rot);
+    bgCtx.beginPath(); bgCtx.ellipse(0,0,p.w*W,p.h*W,0,0,TAU);
+    bgCtx.fillStyle=`hsla(${p.hue},55%,84%,${p.a})`; bgCtx.fill();
     bgCtx.restore();
   });
 
-  // Grass blades at bottom
-  for (let i = 0; i < 80; i++) {
-    const gx = (i / 80) * W + Math.sin(i * 1.7) * 18;
-    const gy = H * 0.5 + (i % 3) * 4;
-    const gh = 18 + Math.sin(i * 2.3 + t * 0.0008) * 8;
+  for (let i=0;i<80;i++) {
+    const gx=(i/80)*W+Math.sin(i*1.7)*18, gy=H*0.5+(i%3)*4;
+    const gh=18+Math.sin(i*2.3+t*0.0008)*8;
     bgCtx.beginPath();
     bgCtx.moveTo(gx, gy);
-    bgCtx.quadraticCurveTo(gx + Math.sin(i + t*0.0005)*6, gy - gh*0.6, gx + Math.sin(i*0.8)*3, gy - gh);
-    bgCtx.strokeStyle = `rgba(38,72,22,${0.35 + (i%4)*0.1})`;
-    bgCtx.lineWidth = 1.2; bgCtx.stroke();
+    bgCtx.quadraticCurveTo(gx+Math.sin(i+t*0.0005)*6, gy-gh*0.6, gx+Math.sin(i*0.8)*3, gy-gh);
+    bgCtx.strokeStyle=`rgba(38,72,22,${0.35+(i%4)*0.1})`; bgCtx.lineWidth=1.2; bgCtx.stroke();
   }
 
-  // Small wildflowers in grass
   [[0.08,0.52],[0.18,0.54],[0.32,0.51],[0.44,0.53],[0.56,0.52],[0.7,0.54],[0.82,0.51],[0.92,0.53]].forEach(([fx,fy],i) => {
-    const flx = fx * W + Math.sin(t * 0.0004 + i) * 3;
-    const fly = fy * H;
-    const r = 3.5;
-    const petalC = i % 2 === 0 ? 'rgba(255,200,210,0.7)' : 'rgba(255,240,160,0.7)';
-    for (let k = 0; k < 6; k++) {
-      const a = k * TAU/6;
-      bgCtx.beginPath();
-      bgCtx.ellipse(flx + Math.cos(a)*r*1.8, fly + Math.sin(a)*r*1.8, r, r*0.55, a, 0, TAU);
-      bgCtx.fillStyle = petalC; bgCtx.fill();
-    }
-    bgCtx.beginPath(); bgCtx.arc(flx, fly, r*0.7, 0, TAU);
-    bgCtx.fillStyle = 'rgba(255,220,100,0.85)'; bgCtx.fill();
+    const flx=fx*W+Math.sin(t*0.0004+i)*3, fly=fy*H, r=3.5;
+    const pc=i%2===0?'rgba(255,200,210,0.7)':'rgba(255,240,160,0.7)';
+    for(let k=0;k<6;k++){const a=k*TAU/6;bgCtx.beginPath();bgCtx.ellipse(flx+Math.cos(a)*r*1.8,fly+Math.sin(a)*r*1.8,r,r*0.55,a,0,TAU);bgCtx.fillStyle=pc;bgCtx.fill();}
+    bgCtx.beginPath();bgCtx.arc(flx,fly,r*0.7,0,TAU);bgCtx.fillStyle='rgba(255,220,100,0.85)';bgCtx.fill();
   });
 
-  // Warm edge vignette — frames the scene
-  const vig = bgCtx.createRadialGradient(W*0.5, H*0.56, Math.min(W,H)*0.22, W*0.5, H*0.56, Math.max(W,H)*0.74);
-  vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(8,18,4,0.42)');
-  bgCtx.fillStyle = vig; bgCtx.fillRect(0, 0, W, H);
+  const vig=bgCtx.createRadialGradient(W*0.5,H*0.56,Math.min(W,H)*0.22,W*0.5,H*0.56,Math.max(W,H)*0.74);
+  vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(8,18,4,0.42)');
+  bgCtx.fillStyle=vig; bgCtx.fillRect(0,0,W,H);
 }
 
 // ─── SVG helpers ─────────────────────────────────────────────────────────────
@@ -345,391 +305,211 @@ function S(vb, w, h, stroke, body) {
   return `<svg viewBox="${vb}" width="${w}" height="${h}" fill="none" stroke="${stroke}" stroke-width="0.8" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
-// ─── Card definitions ─────────────────────────────────────────────────────────
+// ─── Card definitions (12 cards, each with unique art) ────────────────────────
 
 const CARDS = [
 
   // ═══ DIVINE ═══════════════════════════════════════════════════════════════
 
-  { cat:'divine', label:'Ankh',
-    art: S('-44 -68 88 108', 78, 96, GOLD, `
-      <ellipse cx="0" cy="-26" rx="20" ry="25"/>
-      <line x1="0" y1="-1" x2="0" y2="38"/>
-      <line x1="-26" y1="10" x2="26" y2="10"/>
-      ${[0,1,2,3,4,5].map(i=>`<circle cx="${cos(i*TAU/6+0.3)*46}" cy="${sin(i*TAU/6+0.3)*38-8}" r="1.2" fill="${GOLD}" stroke="none" opacity=".4"/>`).join('')}
+  { cat:'divine', label:'Eye of Providence',
+    art: S('-52 -58 104 108', 82, 88, GOLD, `
+      <circle cx="0" cy="-2" r="50" opacity=".10"/>
+      <polygon points="0,-52 -44,36 44,36" opacity=".82"/>
+      <ellipse cx="0" cy="8" rx="15" ry="9"/>
+      <circle cx="0" cy="8" r="5.5" fill="${GOLD}" stroke="none" opacity=".36"/>
+      <circle cx="3.5" cy="5.5" r="2.8" fill="rgba(255,255,255,0.50)" stroke="none"/>
+      <line x1="0" y1="-52" x2="0" y2="-62" opacity=".28"/>
+      <line x1="0" y1="-52" x2="-9" y2="-60" opacity=".20"/>
+      <line x1="0" y1="-52" x2="9" y2="-60" opacity=".20"/>
+      <line x1="-44" y1="36" x2="-54" y2="44" opacity=".25"/>
+      <line x1="-44" y1="36" x2="-52" y2="26" opacity=".20"/>
+      <line x1="44" y1="36" x2="54" y2="44" opacity=".25"/>
+      <line x1="44" y1="36" x2="52" y2="26" opacity=".20"/>
+      ${[0,1,2,3,4,5,6,7].map(i=>{const a=i*TAU/8;return`<circle cx="${(Math.cos(a)*52).toFixed(1)}" cy="${(Math.sin(a)*52-2).toFixed(1)}" r="1.2" fill="${GOLD}" stroke="none" opacity=".22"/>`;}).join('')}
     `)
   },
 
-  { cat:'divine', label:'Tree of Life',
-    art: S('-52 -64 104 128', 86, 106, GOLD, `
-      <circle cx="0" cy="-57" r="5.5"/><circle cx="32" cy="-37" r="4.5"/><circle cx="-32" cy="-37" r="4.5"/>
-      <circle cx="32" cy="-7"  r="4.5"/><circle cx="-32" cy="-7"  r="4.5"/><circle cx="0"   cy="5"   r="5.5"/>
-      <circle cx="32" cy="26"  r="4.5"/><circle cx="-32" cy="26"  r="4.5"/><circle cx="0"   cy="44"  r="4.5"/>
-      <circle cx="0"  cy="60"  r="5.5"/>
-      <line x1="0" y1="-51" x2="32" y2="-42"/><line x1="0" y1="-51" x2="-32" y2="-42"/>
-      <line x1="0" y1="-51" x2="0" y2="-1"/><line x1="32" y1="-32" x2="-32" y2="-32" opacity=".3"/>
-      <line x1="32" y1="-32" x2="32" y2="-12"/><line x1="-32" y1="-32" x2="-32" y2="-12"/>
-      <line x1="32" y1="-2" x2="0" y2="10"/><line x1="-32" y1="-2" x2="0" y2="10"/>
-      <line x1="32" y1="-2" x2="-32" y2="-2" opacity=".25"/>
-      <line x1="32" y1="21" x2="0" y2="10"/><line x1="-32" y1="21" x2="0" y2="10"/>
-      <line x1="0" y1="10" x2="0" y2="39"/><line x1="32" y1="21" x2="-32" y2="21" opacity=".25"/>
-      <line x1="32" y1="31" x2="0" y2="49"/><line x1="-32" y1="31" x2="0" y2="49"/>
-      <line x1="0" y1="49" x2="0" y2="55"/>
-    `)
-  },
-
-  { cat:'divine', label:'Lotus',
-    art: S('-56 -56 112 80', 88, 80, GOLD, `
-      ${[0,1,2,3,4,5,6,7].map(i=>{
-        const a=i*TAU/8, r=36;
-        const px=Math.cos(a)*r, py=Math.sin(a)*r;
-        const q1x=Math.cos(a-0.45)*22, q1y=Math.sin(a-0.45)*22;
-        const q2x=Math.cos(a+0.45)*22, q2y=Math.sin(a+0.45)*22;
-        return `<path d="M 0,0 Q ${q1x.toFixed(1)},${q1y.toFixed(1)} ${px.toFixed(1)},${py.toFixed(1)} Q ${q2x.toFixed(1)},${q2y.toFixed(1)} 0,0 Z" opacity=".72"/>`;
+  { cat:'divine', label:'Merkaba',
+    art: S('-50 -50 100 100', 82, 82, GOLD, `
+      <polygon points="0,-46 -39.8,23 39.8,23" opacity=".80"/>
+      <polygon points="0,46 -39.8,-23 39.8,-23" opacity=".80"/>
+      <polygon points="0,-23 -19.9,-11.5 -19.9,11.5 0,23 19.9,11.5 19.9,-11.5" opacity=".26"/>
+      <circle cx="0" cy="0" r="47" opacity=".10"/>
+      ${[0,1,2].map(i=>{
+        const a=i*TAU/3-TAU/12;
+        const bx=(Math.cos(a)*46).toFixed(1), by=(Math.sin(a)*46).toFixed(1);
+        const cx2=(Math.cos(a+Math.PI)*46).toFixed(1), cy2=(Math.sin(a+Math.PI)*46).toFixed(1);
+        return `<circle cx="${bx}" cy="${by}" r="2.5" fill="${GOLD}" stroke="none" opacity=".50"/>
+                <circle cx="${cx2}" cy="${cy2}" r="2.5" fill="${GOLD}" stroke="none" opacity=".50"/>`;
       }).join('')}
-      <circle cx="0" cy="0" r="11"/>
-      <circle cx="0" cy="0" r="4.5" fill="${GOLD}" stroke="none" opacity=".45"/>
+      <circle cx="0" cy="0" r="5" fill="${GOLD}" stroke="none" opacity=".22"/>
     `)
   },
 
-  { cat:'divine', label:'Eye of Ra',
-    art: S('-60 -44 120 88', 90, 66, GOLD, `
-      <path d="M -54,0 Q -12,-34 0,-34 Q 12,-34 54,0 Q 12,34 0,34 Q -12,34 -54,0 Z"/>
-      <circle cx="0" cy="0" r="18"/>
-      <circle cx="0" cy="0" r="7" fill="${GOLD}" stroke="none" opacity=".4"/>
-      <circle cx="6" cy="-5" r="3" fill="rgba(255,255,255,0.5)" stroke="none"/>
-      <line x1="0" y1="18" x2="-6" y2="32" opacity=".5"/>
-      <line x1="-6" y1="32" x2="-14" y2="40" opacity=".45"/>
-      <line x1="-6" y1="32" x2="-2" y2="40" opacity=".35"/>
-      ${[0,1,2,3,4,5].map(i=>{const a=-TAU/6+i*TAU/12;const r=62;return`<line x1="${cos(a)*50}" y1="${sin(a)*50}" x2="${cos(a)*r}" y2="${sin(a)*r}" opacity=".25"/>`}).join('')}
+  { cat:'divine', label:'Vesica Piscis',
+    art: S('-58 -44 116 88', 88, 74, GOLD, `
+      <circle cx="-18" cy="0" r="36" opacity=".38"/>
+      <circle cx="18" cy="0" r="36" opacity=".38"/>
+      <path d="M 0,-31 A 36,36 0 0 0 0,31 A 36,36 0 0 0 0,-31 Z" opacity=".70"/>
+      <line x1="0" y1="-31" x2="0" y2="31" opacity=".52"/>
+      <line x1="-54" y1="0" x2="54" y2="0" opacity=".18"/>
+      <line x1="-18" y1="-31" x2="18" y2="-31" opacity=".22"/>
+      <line x1="-18" y1="31" x2="18" y2="31" opacity=".22"/>
+      <circle cx="0" cy="0" r="3.5" fill="${GOLD}" stroke="none" opacity=".42"/>
+      <circle cx="0" cy="-31" r="2.2" fill="${GOLD}" stroke="none" opacity=".38"/>
+      <circle cx="0" cy="31" r="2.2" fill="${GOLD}" stroke="none" opacity=".38"/>
+      <circle cx="-18" cy="0" r="2" fill="${GOLD}" stroke="none" opacity=".28"/>
+      <circle cx="18" cy="0" r="2" fill="${GOLD}" stroke="none" opacity=".28"/>
     `)
   },
 
-  { cat:'divine', label:'Hamsa',
-    art: S('-40 -64 80 112', 72, 100, GOLD, `
-      <path d="M -28,22 Q -34,-10 -30,-40 Q -26,-54 -18,-54 Q -10,-54 -10,-34 L -10,2"/>
-      <path d="M -10,2 L -10,-44 Q -10,-56 0,-56 Q 10,-56 10,-44 L 10,2"/>
-      <path d="M 10,2 L 10,-34 Q 10,-54 18,-54 Q 26,-54 30,-40 Q 34,-10 28,22"/>
-      <path d="M -28,22 Q -22,46 0,48 Q 22,46 28,22 Z"/>
-      <ellipse cx="0" cy="-10" rx="8" ry="5.5"/>
-      <circle cx="0" cy="-10" r="2.5" fill="${GOLD}" stroke="none" opacity=".5"/>
-      <line x1="-14" y1="-56" x2="-14" y2="-64" opacity=".4"/>
-      <line x1="14"  y1="-56" x2="14"  y2="-64" opacity=".4"/>
-      <line x1="0"   y1="-56" x2="0"   y2="-64" opacity=".4"/>
-    `)
-  },
-
-  { cat:'divine', label:'Sacred Wings',
-    art: S('-66 -32 132 64', 94, 58, GOLD, `
-      <path d="M 0,-5 Q -18,-24 -44,-22 Q -60,-20 -62,-7 Q -54,2 -38,4 Q -22,6 0,4"/>
-      <path d="M 0,-5 Q -14,-12 -30,-10 Q -44,-8 -46,0 Q -38,4 -22,4 Q -8,5 0,4"/>
-      <path d="M -18,-20 Q -30,-16 -34,-8" opacity=".35"/>
-      <path d="M -30,-14 Q -38,-10 -40,-2" opacity=".3"/>
-      <path d="M 0,-5 Q 18,-24 44,-22 Q 60,-20 62,-7 Q 54,2 38,4 Q 22,6 0,4"/>
-      <path d="M 0,-5 Q 14,-12 30,-10 Q 44,-8 46,0 Q 38,4 22,4 Q 8,5 0,4"/>
-      <path d="M 18,-20 Q 30,-16 34,-8" opacity=".35"/>
-      <path d="M 30,-14 Q 38,-10 40,-2" opacity=".3"/>
-      <circle cx="0" cy="0" r="5"/>
-      <circle cx="0" cy="0" r="2" fill="${GOLD}" stroke="none" opacity=".5"/>
-    `)
-  },
-
-  { cat:'divine', label:'Star of David',
-    art: S('-52 -52 104 104', 84, 84, GOLD, `
-      <polygon points="${[0,1,2].map(i=>{const a=i*TAU/3-TAU/12;return`${cos(a)*42},${sin(a)*42}`}).join(' ')}"/>
-      <polygon points="${[0,1,2].map(i=>{const a=i*TAU/3+TAU/12;return`${cos(a)*42},${sin(a)*42}`}).join(' ')}"/>
-      <circle cx="0" cy="0" r="14" opacity=".38"/>
-      <circle cx="0" cy="0" r="48" opacity=".14"/>
-      ${[0,1,2,3,4,5].map(i=>`<circle cx="${cos(i*TAU/6)*42}" cy="${sin(i*TAU/6)*42}" r="2" fill="${GOLD}" stroke="none" opacity=".5"/>`).join('')}
-    `)
-  },
-
-  { cat:'divine', label:'Sacred Flame',
-    art: S('-36 -60 72 88', 70, 86, GOLD, `
-      <path d="M 0,26 Q -30,-6 -18,-34 Q -10,-52 0,-56 Q 4,-44 0,-30 Q 14,-40 16,-58 Q 24,-38 22,-8 Q 30,-20 28,-40 Q 38,-14 30,10 Q 22,28 0,26 Z"/>
-      <path d="M 0,20 Q -12,0 -8,-16 Q 0,-24 8,-12 Q 10,0 0,20 Z" opacity=".5"/>
-      <circle cx="0" cy="12" r="5.5" opacity=".45"/>
-    `)
-  },
-
-  { cat:'divine', label:'Crescent & Stars',
-    art: S('-48 -48 96 96', 84, 84, GOLD, `
-      <path d="M 10,-38 A 38,38 0 1,0 10,38 A 28,28 0 1,1 10,-38 Z"/>
-      ${[[36,-22],[42,2],[30,26],[48,-8],[50,14]].map(([sx,sy])=>`<polygon points="${sx},${sy-3.5} ${sx-1.2},${sy+1.5} ${sx+1.2},${sy+1.5}" fill="${GOLD}" stroke="none" opacity=".65"/>`).join('')}
-      ${[[-12,-18],[-8,8],[4,-28]].map(([sx,sy])=>`<circle cx="${sx}" cy="${sy}" r="1" fill="${GOLD}" stroke="none" opacity=".4"/>`).join('')}
+  { cat:'divine', label:'Caduceus',
+    art: S('-34 -62 68 110', 64, 94, GOLD, `
+      <line x1="0" y1="-58" x2="0" y2="44"/>
+      <circle cx="0" cy="-54" r="5.5" opacity=".85"/>
+      <circle cx="0" cy="-54" r="2.5" fill="${GOLD}" stroke="none" opacity=".40"/>
+      <path d="M 0,-50 Q -22,-46 -22,-32 Q -22,-18 0,-12 Q 22,-6 22,8 Q 22,22 0,28 Q -22,34 -22,44" opacity=".80"/>
+      <path d="M 0,-50 Q 22,-46 22,-32 Q 22,-18 0,-12 Q -22,-6 -22,8 Q -22,22 0,28 Q 22,34 22,44" opacity=".80"/>
+      <path d="M 0,-50 Q -26,-54 -28,-44 Q -27,-34 0,-34" opacity=".80"/>
+      <path d="M 0,-50 Q 26,-54 28,-44 Q 27,-34 0,-34" opacity=".80"/>
+      <circle cx="-22" cy="-32" r="2" fill="${GOLD}" stroke="none" opacity=".30"/>
+      <circle cx="22" cy="-32" r="2" fill="${GOLD}" stroke="none" opacity=".30"/>
+      <circle cx="0" cy="-12" r="2" fill="${GOLD}" stroke="none" opacity=".30"/>
+      <circle cx="22" cy="8" r="2" fill="${GOLD}" stroke="none" opacity=".30"/>
+      <circle cx="-22" cy="8" r="2" fill="${GOLD}" stroke="none" opacity=".30"/>
+      <line x1="-18" y1="44" x2="18" y2="44" opacity=".28"/>
     `)
   },
 
   // ═══ FOREST ═══════════════════════════════════════════════════════════════
 
-  { cat:'forest', label:'Ancient Tree',
-    art: S('-52 -66 104 110', 86, 96, GREEN, `
-      <path d="M -5,42 Q -8,10 -4,-10 Q 0,-24 4,-10 Q 8,10 5,42"/>
-      <path d="M -5,42 Q -24,52 -38,46" opacity=".7"/>
-      <path d="M 5,42 Q 24,52 38,46" opacity=".7"/>
-      <path d="M -2,42 Q -12,56 -16,60" opacity=".5"/>
-      <path d="M 2,42 Q 12,56 16,60" opacity=".5"/>
-      <path d="M 0,-10 Q -22,-18 -42,-14" opacity=".8"/>
-      <path d="M 0,-10 Q 22,-18 42,-14" opacity=".8"/>
-      <path d="M -1,-22 Q -28,-32 -46,-28" opacity=".7"/>
-      <path d="M 1,-22 Q 28,-32 46,-28" opacity=".7"/>
-      <path d="M 0,-34 Q -20,-44 -30,-50" opacity=".62"/>
-      <path d="M 0,-34 Q 20,-44 30,-50" opacity=".62"/>
-      <path d="M -1,-38 Q -8,-52 -12,-62" opacity=".5"/>
-      <path d="M 1,-38 Q 8,-52 12,-62" opacity=".5"/>
-      <path d="M 0,-40 Q 1,-54 2,-64" opacity=".5"/>
-      <circle cx="-40" cy="-14" r="3" opacity=".38"/>
-      <circle cx="40"  cy="-14" r="3" opacity=".38"/>
-      <circle cx="-28" cy="-50" r="2.5" opacity=".35"/>
-      <circle cx="28"  cy="-50" r="2.5" opacity=".35"/>
-      <circle cx="-10" cy="-62" r="2" opacity=".3"/>
+  { cat:'forest', label:'Banyan',
+    art: S('-58 -44 116 98', 88, 82, GREEN, `
+      <line x1="0" y1="50" x2="0" y2="4"/>
+      <path d="M -52,4 Q -56,-14 -44,-24 Q -32,-36 -20,-28 Q -10,-38 0,-26 Q 10,-38 20,-28 Q 32,-36 44,-24 Q 56,-14 52,4 Z" opacity=".78"/>
+      <path d="M -38,4 Q -40,-10 -30,-18 Q -18,-26 -8,-18 Q 0,-24 8,-18 Q 18,-26 30,-18 Q 40,-10 38,4 Z" opacity=".48"/>
+      <line x1="-40" y1="50" x2="-40" y2="16" opacity=".70"/>
+      <line x1="-22" y1="50" x2="-22" y2="8"  opacity=".65"/>
+      <line x1="22"  y1="50" x2="22"  y2="8"  opacity=".65"/>
+      <line x1="40"  y1="50" x2="40"  y2="16" opacity=".70"/>
+      <line x1="-52" y1="50" x2="-52" y2="24" opacity=".52"/>
+      <line x1="52"  y1="50" x2="52"  y2="24" opacity=".52"/>
+      <line x1="-58" y1="50" x2="58"  y2="50" opacity=".18"/>
+      ${[-52,-40,-22,0,22,40,52].map(x=>`<ellipse cx="${x}" cy="50" rx="2.8" ry="1.8" fill="${GREEN}" stroke="none" opacity=".28"/>`).join('')}
     `)
   },
 
-  { cat:'forest', label:'Forest Canopy',
-    art: S('-58 -56 116 88', 90, 76, GREEN, `
-      <line x1="0"   y1="28" x2="0"   y2="-2"/> <polygon points="0,-52 -20,-2 20,-2" opacity=".8"/>
-      <polygon points="0,-40 -14,6 14,6" opacity=".55"/>
-      <line x1="-36" y1="28" x2="-36" y2="6"/>   <polygon points="-36,-36 -50,6 -22,6" opacity=".72"/>
-      <line x1="36"  y1="28" x2="36"  y2="6"/>   <polygon points="36,-36 22,6 50,6" opacity=".72"/>
-      <line x1="-54" y1="28" x2="-54" y2="14"/>  <polygon points="-54,-22 -64,14 -44,14" opacity=".55"/>
-      <line x1="54"  y1="28" x2="54"  y2="14"/>  <polygon points="54,-22 44,14 64,14" opacity=".55"/>
-      <line x1="-58" y1="28" x2="58" y2="28" opacity=".2"/>
+  { cat:'forest', label:'Mycelium',
+    art: (() => {
+      const N=[
+        [0,0],[-30,-22],[24,-26],[-10,28],[32,14],
+        [-36,4],[40,-8],[-22,38],[12,-42],[-26,-42],
+        [42,32],[-44,26],[16,42],[-16,-10],[28,-38],
+        [44,12],[-40,-16],[6,18],[-6,-28],[36,-26]
+      ];
+      const HUB=new Set([0,5,7,10,8,11]);
+      const THR=32;
+      let lines='', dots='';
+      for(let i=0;i<N.length;i++){
+        for(let j=i+1;j<N.length;j++){
+          const d=Math.hypot(N[i][0]-N[j][0],N[i][1]-N[j][1]);
+          if(d<THR) lines+=`<line x1="${N[i][0]}" y1="${N[i][1]}" x2="${N[j][0]}" y2="${N[j][1]}" opacity="${(0.18+(1-d/THR)*0.38).toFixed(2)}" stroke-width="0.6"/>`;
+        }
+        const r=HUB.has(i)?3.8:1.8, op=HUB.has(i)?0.62:0.38;
+        dots+=`<circle cx="${N[i][0]}" cy="${N[i][1]}" r="${r}" fill="${GREEN}" stroke="none" opacity="${op}"/>`;
+      }
+      return S('-50 -48 100 96',82,80,GREEN,lines+dots);
+    })()
+  },
+
+  { cat:'forest', label:'Owl',
+    art: S('-44 -58 88 104', 76, 90, GREEN, `
+      <circle cx="0" cy="-18" r="26" opacity=".85"/>
+      <polygon points="0,50 -32,-5 32,-5" opacity=".75"/>
+      <polygon points="-18,-42 -26,-28 -10,-28" opacity=".80"/>
+      <polygon points="18,-42 26,-28 10,-28" opacity=".80"/>
+      <circle cx="-9.5" cy="-18" r="10" opacity=".90"/>
+      <circle cx="9.5"  cy="-18" r="10" opacity=".90"/>
+      <circle cx="-9.5" cy="-18" r="5.5" fill="${GREEN}" stroke="none" opacity=".36"/>
+      <circle cx="9.5"  cy="-18" r="5.5" fill="${GREEN}" stroke="none" opacity=".36"/>
+      <circle cx="-7" cy="-20.5" r="2.5" fill="rgba(255,255,255,0.55)" stroke="none"/>
+      <circle cx="12" cy="-20.5" r="2.5" fill="rgba(255,255,255,0.55)" stroke="none"/>
+      <polygon points="0,-12 -4,-6 4,-6" opacity=".72"/>
+      <line x1="-32" y1="-5" x2="-32" y2="50" opacity=".28"/>
+      <line x1="32"  y1="-5" x2="32"  y2="50" opacity=".28"/>
+      ${[-18,-8,0,8,18].map(x=>`<path d="M ${x},-4 Q ${x},6 ${(x*1.1).toFixed(1)},10" opacity=".26" stroke-width="0.7"/>`).join('')}
     `)
   },
 
-  { cat:'forest', label:'Fern',
-    art: S('-46 -64 92 108', 82, 100, GREEN, `
-      <path d="M 0,44 Q 2,-14 -2,-62"/>
-      ${[0,1,2,3,4,5,6,7,8].map(i=>{
-        const y=36-i*12, sp=16+i*2.8;
-        return `<path d="M ${(-0.5+i*0.2).toFixed(1)},${y} Q ${(-sp/2).toFixed(1)},${y-9} ${(-sp).toFixed(1)},${(y-3+i*0.4).toFixed(1)}" opacity="${Math.min(0.85,0.42+i*0.06).toFixed(2)}"/>
-                <path d="M ${(0.5-i*0.2).toFixed(1)},${y-6} Q ${(sp/2).toFixed(1)},${y-15} ${sp.toFixed(1)},${(y-9+i*0.4).toFixed(1)}" opacity="${Math.min(0.78,0.38+i*0.06).toFixed(2)}"/>`;
-      }).join('')}
-    `)
-  },
-
-  { cat:'forest', label:'Sacred Mushroom',
-    art: S('-46 -58 92 92', 82, 84, GREEN, `
-      <path d="M -40,4 Q -46,-30 0,-52 Q 46,-30 40,4 Z"/>
-      ${[-28,-18,-8,0,8,18,28].map(x=>`<line x1="${x}" y1="4" x2="${(x*0.65).toFixed(1)}" y2="-22" opacity=".3"/>`).join('')}
-      <path d="M -15,4 Q -17,26 -13,34 Q 0,38 13,34 Q 17,26 15,4"/>
-      <circle cx="-16" cy="-28" r="4.5" opacity=".42"/>
-      <circle cx="15"  cy="-24" r="3.5" opacity=".42"/>
-      <circle cx="2"   cy="-40" r="2.8" opacity=".4"/>
-      <circle cx="-28" cy="-10" r="3"   opacity=".38"/>
-      <circle cx="26"  cy="-18" r="2.5" opacity=".35"/>
-    `)
-  },
-
-  { cat:'forest', label:'Root System',
-    art: S('-54 -16 108 84', 86, 74, GREEN, `
-      <path d="M 0,-14 Q 2,18 0,66"/>
-      <path d="M 0,8  Q -20,15 -40,10 Q -50,10 -54,18" opacity=".8"/>
-      <path d="M 0,22 Q -16,30 -30,40 Q -38,46 -42,54" opacity=".7"/>
-      <path d="M 0,36 Q -9,44 -18,54" opacity=".55"/>
-      <path d="M 0,8  Q 20,15 40,10 Q 50,10 54,18" opacity=".8"/>
-      <path d="M 0,22 Q 16,30 30,40 Q 38,46 42,54" opacity=".7"/>
-      <path d="M 0,36 Q 9,44 18,54" opacity=".55"/>
-      <path d="M -40,10 Q -44,22 -48,28" opacity=".42"/>
-      <path d="M 40,10  Q 44,22 48,28" opacity=".42"/>
-      <path d="M -30,40 Q -36,52 -38,60" opacity=".35"/>
-      <path d="M 30,40  Q 36,52 38,60" opacity=".35"/>
-      <line x1="-54" y1="-2" x2="54" y2="-2" opacity=".18"/>
-    `)
-  },
-
-  { cat:'forest', label:'Seed & Sprout',
-    art: S('-32 -64 64 96', 66, 90, GREEN, `
-      <ellipse cx="0" cy="24" rx="15" ry="20"/>
-      <path d="M 0,44 Q 2,56 0,62"/>
-      <path d="M 0,4 Q -2,-20 0,-60"/>
-      <path d="M -1,-26 Q -24,-38 -26,-52 Q -14,-40 -2,-30" opacity=".8"/>
-      <path d="M 2,-34 Q 24,-44 24,-58 Q 14,-44 2,-38" opacity=".8"/>
-      <path d="M -1,-44 Q -14,-52 -12,-62 Q -6,-50 0,-46" opacity=".55"/>
-      <circle cx="0" cy="-60" r="3.2" opacity=".55"/>
-      <circle cx="0" cy="24" r="5" fill="${GREEN}" stroke="none" opacity=".25"/>
-    `)
-  },
-
-  { cat:'forest', label:'Leaf',
-    art: S('-40 -62 80 98', 74, 90, GREEN, `
-      <path d="M 0,36 Q -36,-10 -4,-56 Q 0,-62 4,-56 Q 36,-10 0,36 Z"/>
-      <line x1="0" y1="36" x2="0" y2="-56" opacity=".45"/>
-      ${[0,1,2,3,4,5,6].map(i=>{
-        const y=28-i*13, xE=15+i*2.8;
-        return `<path d="M 0,${y} Q ${(xE*0.45).toFixed(1)},${y-7} ${xE},${(y-4).toFixed(1)}" opacity="${(0.28+i*0.04).toFixed(2)}"/>
-                <path d="M 0,${y} Q ${(-xE*0.45).toFixed(1)},${y-7} ${-xE},${(y-4).toFixed(1)}" opacity="${(0.28+i*0.04).toFixed(2)}"/>`;
-      }).join('')}
-    `)
-  },
-
-  { cat:'forest', label:'Moon Forest',
-    art: S('-56 -54 112 88', 88, 78, GREEN, `
-      <circle cx="0" cy="-22" r="22" opacity=".58"/>
-      <rect x="-48" y="6"  width="4"  height="32" rx="2" opacity=".8"/>
-      <polygon points="-46,-16 -56,6 -36,6" opacity=".76"/>
-      <polygon points="-46,-4 -54,16 -38,16" opacity=".5"/>
-      <rect x="-14" y="2"  width="5"  height="36" rx="2" opacity=".8"/>
-      <polygon points="-12,-32 -24,2 0,2"   opacity=".82"/>
-      <polygon points="-12,-18 -22,12 2,12"  opacity=".58"/>
-      <rect x="10"  y="4"  width="5"  height="34" rx="2" opacity=".8"/>
-      <polygon points="12,-30 0,4 24,4"     opacity=".78"/>
-      <rect x="38"  y="8"  width="4"  height="30" rx="2" opacity=".78"/>
-      <polygon points="40,-14 30,8 50,8"   opacity=".72"/>
-      <line x1="-56" y1="38" x2="56" y2="38" opacity=".2"/>
-    `)
+  { cat:'forest', label:'Golden Spiral',
+    art: (() => {
+      const phi=1.6180339887;
+      const pts=[];
+      for(let t=0;t<=Math.PI*3.2;t+=0.07){
+        const r=2.6*Math.pow(phi,2*t/Math.PI);
+        pts.push([+(Math.cos(t+Math.PI)*r).toFixed(1),+(Math.sin(t+Math.PI)*r).toFixed(1)]);
+      }
+      const markers=[0,1,2,3,4,5,6].map(i=>{
+        const t2=i*Math.PI/2;
+        const r2=2.6*Math.pow(phi,2*t2/Math.PI);
+        return [+(Math.cos(t2+Math.PI)*r2).toFixed(1),+(Math.sin(t2+Math.PI)*r2).toFixed(1)];
+      });
+      return S('-48 -48 96 96',82,82,GREEN,
+        `<polyline points="${pts.map(p=>p.join(',')).join(' ')}" stroke-width="0.85" opacity=".72"/>
+         ${markers.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="1.8" fill="${GREEN}" stroke="none" opacity=".40"/>`).join('')}
+         <line x1="-46" y1="0" x2="46" y2="0" opacity=".07"/>
+         <line x1="0" y1="-46" x2="0" y2="46" opacity=".07"/>`);
+    })()
   },
 
   // ═══ GARDEN ═══════════════════════════════════════════════════════════════
 
   { cat:'garden', label:'Sunflower',
-    art: S('-52 -52 104 104', 86, 86, ROSE, `
+    art: S('-52 -52 104 104', 82, 82, ROSE, `
       ${[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15].map(i=>{
-        const a=i*TAU/16, r=34;
-        return `<ellipse cx="${cos(a)*r}" cy="${sin(a)*r}" rx="7" ry="14" transform="rotate(${(i*360/16).toFixed(0)} ${cos(a)*r} ${sin(a)*r})" opacity=".72"/>`;
+        const a=i*TAU/16, r=32;
+        return `<ellipse cx="${cos(a)*r}" cy="${sin(a)*r}" rx="6" ry="13" transform="rotate(${(i*360/16).toFixed(0)} ${cos(a)*r} ${sin(a)*r})" opacity=".70"/>`;
       }).join('')}
-      <circle cx="0" cy="0" r="19"/>
+      <circle cx="0" cy="0" r="18"/>
       ${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(i=>{
-        const a=i*TAU/13, rs=8+Math.sin(i*2.3)*3;
-        return `<circle cx="${(Math.cos(a)*rs).toFixed(1)}" cy="${(Math.sin(a)*rs).toFixed(1)}" r="1.4" fill="${ROSE}" stroke="none" opacity=".55"/>`;
+        const a=i*TAU/13, rs=7+Math.sin(i*2.3)*3;
+        return `<circle cx="${(Math.cos(a)*rs).toFixed(1)}" cy="${(Math.sin(a)*rs).toFixed(1)}" r="1.3" fill="${ROSE}" stroke="none" opacity=".52"/>`;
       }).join('')}
-      <circle cx="0" cy="0" r="4" fill="${ROSE}" stroke="none" opacity=".35"/>
+      <circle cx="0" cy="0" r="3.8" fill="${ROSE}" stroke="none" opacity=".32"/>
     `)
   },
 
   { cat:'garden', label:'Butterfly',
-    art: S('-56 -52 112 88', 90, 76, ROSE, `
+    art: S('-56 -52 112 88', 88, 74, ROSE, `
       <path d="M 0,2 Q -10,-28 -38,-22 Q -56,-12 -48,8 Q -38,26 -20,28 Q -8,28 0,12"/>
       <path d="M 0,2 Q -8,-6 -20,2 Q -26,10 -18,18 Q -10,26 0,12"/>
       <path d="M 0,2 Q 10,-28 38,-22 Q 56,-12 48,8 Q 38,26 20,28 Q 8,28 0,12"/>
       <path d="M 0,2 Q 8,-6 20,2 Q 26,10 18,18 Q 10,26 0,12"/>
-      <path d="M -18,-24 Q -30,-16 -30,-6" opacity=".3"/>
-      <path d="M 18,-24 Q 30,-16 30,-6" opacity=".3"/>
+      <path d="M -18,-24 Q -30,-16 -30,-6" opacity=".28"/>
+      <path d="M 18,-24 Q 30,-16 30,-6" opacity=".28"/>
       <ellipse cx="0" cy="8" rx="2.5" ry="12"/>
-      <path d="M 0,-4 Q -8,-22 -12,-30"/><circle cx="-12" cy="-30" r="2" fill="${ROSE}" stroke="none" opacity=".6"/>
-      <path d="M 0,-4 Q 8,-22 12,-30"/>  <circle cx="12"  cy="-30" r="2" fill="${ROSE}" stroke="none" opacity=".6"/>
+      <path d="M 0,-4 Q -8,-22 -12,-30"/><circle cx="-12" cy="-30" r="2" fill="${ROSE}" stroke="none" opacity=".60"/>
+      <path d="M 0,-4 Q 8,-22 12,-30"/>  <circle cx="12"  cy="-30" r="2" fill="${ROSE}" stroke="none" opacity=".60"/>
     `)
   },
 
-  { cat:'garden', label:'Water Lily',
-    art: S('-52 -38 104 74', 86, 68, IVRY, `
-      <ellipse cx="0" cy="22" rx="46" ry="28" opacity=".5"/>
-      <path d="M 0,22 L 8,-8" opacity=".3"/>
-      ${[0,1,2,3,4,5,6,7].map(i=>{
-        const a=i*TAU/8-TAU/8, r=24;
-        return `<ellipse cx="${(Math.cos(a)*r).toFixed(1)}" cy="${(Math.sin(a)*r-2).toFixed(1)}" rx="9" ry="17" transform="rotate(${(i*360/8).toFixed(0)} ${(Math.cos(a)*r).toFixed(1)} ${(Math.sin(a)*r-2).toFixed(1)})" opacity=".7"/>`;
-      }).join('')}
-      <circle cx="0" cy="-2" r="9"/>
-      <circle cx="0" cy="-2" r="4.5" fill="${IVRY}" stroke="none" opacity=".4"/>
-      ${[0,1,2,3,4,5,6,7].map(i=>`<line x1="0" y1="-2" x2="${(Math.cos(i*TAU/8)*7).toFixed(1)}" y2="${(Math.sin(i*TAU/8)*7-2).toFixed(1)}" opacity=".35"/>`).join('')}
-    `)
-  },
-
-  { cat:'garden', label:'Garden Arch',
-    art: S('-40 -64 80 108', 72, 96, ROSE, `
-      <line x1="-28" y1="42" x2="-28" y2="-26"/>
-      <line x1="28"  y1="42" x2="28"  y2="-26"/>
-      <path d="M -28,-26 Q -28,-58 0,-58 Q 28,-58 28,-26"/>
-      <path d="M -28,14 Q -22,4 -28,-8 Q -24,-20 -20,-28" opacity=".65"/>
-      <path d="M 28,12 Q 22,2 28,-10 Q 24,-22 20,-28" opacity=".65"/>
-      <path d="M -28,-4 Q -22,-12 -20,-22" opacity=".5"/>
-      <path d="M 28,-6 Q 22,-14 20,-24" opacity=".5"/>
-      <ellipse cx="-23" cy="-10" rx="5" ry="7" transform="rotate(-22)" opacity=".7"/>
-      <ellipse cx="24"  cy="-8"  rx="5" ry="7" transform="rotate(18)"  opacity=".7"/>
-      <ellipse cx="-20" cy="10"  rx="4" ry="6" transform="rotate(-16)" opacity=".6"/>
-      <circle cx="-24" cy="-24" r="3" opacity=".6"/>
-      <circle cx="24"  cy="-22" r="3" opacity=".6"/>
-      <path d="M -28,-58 Q -16,-66 0,-68 Q 16,-66 28,-58" opacity=".4"/>
-    `)
-  },
-
-  { cat:'garden', label:'Honeybee',
-    art: S('-44 -52 88 90', 80, 78, GOLD, `
-      <ellipse cx="0" cy="10" rx="15" ry="22"/>
-      <line x1="-14" y1="4"  x2="14" y2="4"  opacity=".55"/>
-      <line x1="-14" y1="14" x2="14" y2="14" opacity=".55"/>
-      <line x1="-12" y1="24" x2="12" y2="24" opacity=".45"/>
-      <ellipse cx="-22" cy="-8"  rx="20" ry="10" opacity=".45"/>
-      <ellipse cx="22"  cy="-8"  rx="20" ry="10" opacity=".45"/>
-      <ellipse cx="-18" cy="8"   rx="15" ry="7"  opacity=".35"/>
-      <ellipse cx="18"  cy="8"   rx="15" ry="7"  opacity=".35"/>
-      <circle cx="0" cy="-16" r="10"/>
-      <circle cx="-4" cy="-18" r="3" fill="${GOLD}" stroke="none" opacity=".35"/>
-      <line x1="0"  y1="32" x2="0" y2="40"/>
-      <path d="M -6,-26 Q -14,-42 -18,-48"/><circle cx="-18" cy="-48" r="2.5" fill="${GOLD}" stroke="none" opacity=".55"/>
-      <path d="M 6,-26 Q 14,-42 18,-48"/>  <circle cx="18"  cy="-48" r="2.5" fill="${GOLD}" stroke="none" opacity=".55"/>
-    `)
-  },
-
-  { cat:'garden', label:'Wild Roses',
-    art: S('-50 -50 100 100', 84, 84, ROSE, `
-      ${[0,1,2].map(ci=>{
-        const ox=[-14,10,-4][ci], oy=[-8,-14,10][ci];
-        const r=[14,12,11][ci];
-        return [0,1,2,3,4].map(i=>{
-          const a=i*TAU/5;
-          return `<ellipse cx="${(ox+Math.cos(a)*r).toFixed(1)}" cy="${(oy+Math.sin(a)*r).toFixed(1)}" rx="8" ry="11" transform="rotate(${(i*72).toFixed(0)} ${(ox+Math.cos(a)*r).toFixed(1)} ${(oy+Math.sin(a)*r).toFixed(1)})" opacity=".68"/>`;
-        }).join('') + `<circle cx="${ox}" cy="${oy}" r="4" fill="${ROSE}" stroke="none" opacity=".4"/>`;
-      }).join('')}
-      <path d="M -14,-8 Q -24,10 -28,40" opacity=".5"/>
-      <path d="M 10,-14 Q 22,4 24,40" opacity=".5"/>
-      <path d="M -4,10 Q 0,26 -2,40" opacity=".5"/>
-      <path d="M -22,16 Q -14,12 -10,20" opacity=".6"/>
-      <path d="M 16,2  Q 24,4 26,14"   opacity=".6"/>
-    `)
-  },
-
-  // ═══ CORE (now with art) ══════════════════════════════════════════════════
+  // ═══ CORE ═════════════════════════════════════════════════════════════════
 
   { cat:'core', label:'Thesis', textClass:'serif',
     text:'"The money is made owning bottlenecks, not end products."',
-    art: S('-52 -52 104 104', 86, 86, 'rgba(255,255,255,0.12)', `
-      ${[0,1,2,3,4,5].map(i=>`<ellipse cx="${cos(i*TAU/6)*40}" cy="${sin(i*TAU/6)*40}" rx="7" ry="16" transform="rotate(${(i*60).toFixed(0)} ${cos(i*TAU/6)*40} ${sin(i*TAU/6)*40})" opacity=".5"/>`).join('')}
-      ${[0,1,2,3,4,5].map(i=>`<ellipse cx="${-cos(i*TAU/6)*40}" cy="${-sin(i*TAU/6)*40}" rx="7" ry="16" transform="rotate(${(i*60+30).toFixed(0)} ${-cos(i*TAU/6)*40} ${-sin(i*TAU/6)*40})" opacity=".35"/>`).join('')}
-      <circle cx="0" cy="0" r="48" opacity=".1"/>
+    art: S('-52 -52 104 104', 82, 82, 'rgba(255,255,255,0.10)', `
+      ${[0,1,2,3,4,5].map(i=>`<ellipse cx="${cos(i*TAU/6)*40}" cy="${sin(i*TAU/6)*40}" rx="6" ry="15" transform="rotate(${(i*60).toFixed(0)} ${cos(i*TAU/6)*40} ${sin(i*TAU/6)*40})" opacity=".48"/>`).join('')}
+      ${[0,1,2,3,4,5].map(i=>`<ellipse cx="${-cos(i*TAU/6)*40}" cy="${-sin(i*TAU/6)*40}" rx="6" ry="15" transform="rotate(${(i*60+30).toFixed(0)} ${-cos(i*TAU/6)*40} ${-sin(i*TAU/6)*40})" opacity=".32"/>`).join('')}
+      <circle cx="0" cy="0" r="48" opacity=".08"/>
     `)
   },
 
   { cat:'core', label:'Consciousness', textClass:'mono',
     text:'LEVEL 32.25\n\nCOSMIC\nTRANSCENDENCE',
-    art: S('-52 -52 104 104', 86, 86, 'rgba(255,255,255,0.1)', `
+    art: S('-52 -52 104 104', 82, 82, 'rgba(255,255,255,0.09)', `
       ${[48,36,26,18,11].map(r=>`<circle cx="0" cy="0" r="${r}" opacity="${(0.06+r*0.004).toFixed(2)}"/>`).join('')}
-      ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`<line x1="0" y1="0" x2="${cos(a)*50}" y2="${sin(a)*50}" opacity=".08"/>`;}).join('')}
-      ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<circle cx="${cos(i*TAU/12)*36}" cy="${sin(i*TAU/12)*36}" r="2" fill="rgba(255,255,255,0.14)" stroke="none"/>`).join('')}
-    `)
-  },
-
-  { cat:'core', label:'Infinity', symbol:'∞',
-    art: S('-54 -30 108 60', 86, 54, SKY, `
-      <path d="M 0,0 C -18,-22 -48,-22 -48,0 C -48,22 -18,22 0,0 C 18,-22 48,-22 48,0 C 48,22 18,22 0,0 Z" opacity=".55"/>
-      <ellipse cx="-26" cy="0" rx="28" ry="14" opacity=".3"/>
-      <ellipse cx="26"  cy="0" rx="28" ry="14" opacity=".3"/>
-      ${[[-44,-8],[-36,10],[-10,-18],[10,18],[36,-10],[44,8]].map(([sx,sy])=>`<circle cx="${sx}" cy="${sy}" r="1.2" fill="${SKY}" stroke="none" opacity=".6"/>`).join('')}
-    `)
-  },
-
-  { cat:'core', label:'Delta', symbol:'Δ',
-    art: S('-50 -52 100 100', 84, 84, GOLD, `
-      <circle cx="0" cy="-40" r="9"/>
-      ${[0,1,2,3,4,5,6,7].map(i=>{const a=i*TAU/8-TAU/4+TAU/16;return`<line x1="${cos(a)*9-0}" y1="${sin(a)*9-40}" x2="${cos(a)*18}" y2="${sin(a)*18-40}" opacity=".35"/>`;}).join('')}
-      <polygon points="0,-26 -44,44 44,44" opacity=".7"/>
-      <line x1="0" y1="-26" x2="0"   y2="44" opacity=".3"/>
-      <line x1="-22" y1="9"  x2="22" y2="9"  opacity=".25"/>
-      <ellipse cx="0" cy="12" rx="10" ry="6" opacity=".4"/>
-      <circle cx="0" cy="12" r="3" fill="${GOLD}" stroke="none" opacity=".4"/>
-    `)
-  },
-
-  { cat:'core', label:'Phi', symbol:'φ',
-    art: S('-50 -52 100 104', 84, 88, IVRY, `
-      <rect x="-44" y="-44" width="44" height="44" opacity=".35"/>
-      <rect x="0"   y="-44" width="28" height="28" opacity=".3"/>
-      <rect x="0"   y="-16" width="28" height="16" opacity=".25"/>
-      <rect x="0"   y="0"   width="17" height="28" opacity=".2"/>
-      <path d="M -44,-44 A 44,44 0 0,1 0,0" stroke-width="0.9" opacity=".65"/>
-      <path d="M -44,-44 Q -44,8 0,0" opacity=".3"/>
-      ${[0,1,2,3].map(i=>`<circle cx="${[-44,0,0,17][i]}" cy="${[-44,-44,0,0][i]}" r="2" fill="${IVRY}" stroke="none" opacity=".4"/>`).join('')}
+      ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`<line x1="0" y1="0" x2="${cos(a)*50}" y2="${sin(a)*50}" opacity=".07"/>`;}).join('')}
+      ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<circle cx="${cos(i*TAU/12)*36}" cy="${sin(i*TAU/12)*36}" r="1.8" fill="rgba(255,255,255,0.13)" stroke="none"/>`).join('')}
     `)
   },
 ];
@@ -741,39 +521,34 @@ const cards   = [];
 
 function buildCards() {
   CARDS.forEach((def, i) => {
-    const el  = document.createElement('div');
+    const el = document.createElement('div');
     el.className = 'card ' + (def.cat || 'core');
 
-    // Art layer (fills card)
     const artDiv = document.createElement('div');
     artDiv.className = 'card-art';
     artDiv.innerHTML = def.art || '';
     el.appendChild(artDiv);
 
-    // Content layer
     const content = document.createElement('div');
     content.className = 'card-content';
     if (def.symbol) {
       const s = document.createElement('div');
-      s.className = 'card-symbol';
-      s.textContent = def.symbol;
+      s.className = 'card-symbol'; s.textContent = def.symbol;
       content.appendChild(s);
     }
     if (def.text) {
       const t = document.createElement('div');
       t.className = 'card-text ' + (def.textClass || '');
-      t.innerHTML = def.text.replace(/\n/g, '<br>');
+      t.innerHTML = def.text.replace(/\n/g,'<br>');
       content.appendChild(t);
     }
     el.appendChild(content);
 
-    // Index
     const idx = document.createElement('div');
     idx.className = 'card-index';
     idx.textContent = String(i+1).padStart(2,'0');
     el.appendChild(idx);
 
-    // Tag
     if (def.cat && def.cat !== 'core') {
       const tag = document.createElement('div');
       tag.className = 'card-tag';
@@ -781,7 +556,6 @@ function buildCards() {
       el.appendChild(tag);
     }
 
-    // Label
     const lbl = document.createElement('div');
     lbl.className = 'card-label';
     lbl.textContent = def.label.toUpperCase();
@@ -789,66 +563,68 @@ function buildCards() {
 
     stageEl.appendChild(el);
 
-    const a = (i / CARDS.length) * TAU;
-    const r = Math.min(W, H) * 0.25;
+    const a = (i/CARDS.length)*TAU;
+    const r = Math.min(W,H)*0.25;
     const card = {
       el, def, i,
-      x: cx, y: cy,
-      hx: cx + Math.cos(a)*r, hy: cy + Math.sin(a)*r,
+      x:cx, y:cy,
+      hx:cx+Math.cos(a)*r, hy:cy+Math.sin(a)*r,
       vx:0, vy:0, rotX:0, rotY:0, rotZ:0, scale:0,
-      depth: 0.75 + Math.random()*0.5,
-      phase: Math.random()*TAU,
-      floatAmp: 2 + Math.random()*5,
-      floatFreq: 0.003 + Math.random()*0.004,
-      born: false,
+      depth:0.75+Math.random()*0.5,
+      phase:Math.random()*TAU,
+      floatAmp:2+Math.random()*5,
+      floatFreq:0.003+Math.random()*0.004,
+      born:false,
     };
-    el.style.opacity = '0';
+    el.style.opacity='0';
     cards.push(card);
   });
 }
 
 // ─── Arrangements ─────────────────────────────────────────────────────────────
 
+let orbitOffset = 0; // rotated by wrist roll gesture
+
 const ARRS = {
   drift(cards, t) {
     cards.forEach((c,i) => {
-      const a = (i/cards.length)*TAU + t*0.0001;
-      c.hx = cx + Math.cos(a)*Math.min(W,H)*0.27;
-      c.hy = cy + Math.sin(a)*Math.min(W,H)*0.27;
+      const a = (i/cards.length)*TAU + t*0.00008 + orbitOffset;
+      c.hx = cx + Math.cos(a)*Math.min(W,H)*0.25;
+      c.hy = cy + Math.sin(a)*Math.min(W,H)*0.25;
     });
   },
   grid(cards) {
     const cols=Math.ceil(Math.sqrt(cards.length)), pw=136, ph=190;
     const ox=-(cols-1)*pw/2, oy=-(Math.ceil(cards.length/cols)-1)*ph/2;
-    cards.forEach((c,i) => { c.hx=cx+ox+(i%cols)*pw; c.hy=cy+oy+Math.floor(i/cols)*ph; c.rotZ=0; });
+    cards.forEach((c,i)=>{ c.hx=cx+ox+(i%cols)*pw; c.hy=cy+oy+Math.floor(i/cols)*ph; c.rotZ=0; });
   },
   divine(cards) {
     const d=cards.filter(c=>c.def.cat==='divine'), o=cards.filter(c=>c.def.cat!=='divine');
-    d.forEach((c,i) => { const a=i*TAU/d.length-TAU/4; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.3; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.3; c.rotZ=0; });
-    o.forEach((c,i) => { const a=i*TAU/o.length; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.14; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.14; c.rotZ=0; });
+    d.forEach((c,i)=>{ const a=i*TAU/d.length-TAU/4+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.28; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.28; c.rotZ=0; });
+    o.forEach((c,i)=>{ const a=i*TAU/o.length+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.12; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.12; c.rotZ=0; });
   },
   forest(cards) {
     const f=cards.filter(c=>c.def.cat==='forest'), o=cards.filter(c=>c.def.cat!=='forest');
-    f.forEach((c,i) => { const a=i*TAU/f.length-TAU/4; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.3; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.3; c.rotZ=0; });
-    o.forEach((c,i) => { const a=i*TAU/o.length; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.14; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.14; c.rotZ=0; });
+    f.forEach((c,i)=>{ const a=i*TAU/f.length-TAU/4+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.28; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.28; c.rotZ=0; });
+    o.forEach((c,i)=>{ const a=i*TAU/o.length+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.12; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.12; c.rotZ=0; });
   },
   garden(cards) {
     const g=cards.filter(c=>c.def.cat==='garden'), o=cards.filter(c=>c.def.cat!=='garden');
-    g.forEach((c,i) => { const a=i*TAU/g.length-TAU/4; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.28; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.28; c.rotZ=0; });
-    o.forEach((c,i) => { const a=i*TAU/o.length; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.14; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.14; c.rotZ=0; });
+    g.forEach((c,i)=>{ const a=i*TAU/g.length-TAU/4+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.28; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.28; c.rotZ=0; });
+    o.forEach((c,i)=>{ const a=i*TAU/o.length+orbitOffset; c.hx=cx+Math.cos(a)*Math.min(W,H)*0.12; c.hy=cy+Math.sin(a)*Math.min(W,H)*0.12; c.rotZ=0; });
   },
   fan(cards) {
     const n=cards.length, fw=Math.min(W*0.86,n*36);
-    cards.forEach((c,i) => {
+    cards.forEach((c,i)=>{
       const p=n>1?i/(n-1):0.5;
       c.hx=cx-fw/2+p*fw; c.hy=cy*1.06+Math.sin(p*Math.PI)*-H*0.13; c.rotZ=(p-0.5)*22;
     });
   },
   stack(cards) {
-    cards.forEach((c,i) => { c.hx=cx+(i-cards.length/2)*1.8; c.hy=cy+(i-cards.length/2)*0.9; c.rotZ=(i-cards.length/2)*2.8; });
+    cards.forEach((c,i)=>{ c.hx=cx+(i-cards.length/2)*1.8; c.hy=cy+(i-cards.length/2)*0.9; c.rotZ=(i-cards.length/2)*2.8; });
   },
   spiral(cards) {
-    cards.forEach((c,i) => { const a=i*0.72*TAU,r=12+i*13; c.hx=cx+Math.cos(a)*r; c.hy=cy+Math.sin(a)*r; c.rotZ=0; });
+    cards.forEach((c,i)=>{ const a=i*0.72*TAU+orbitOffset, r=12+i*13; c.hx=cx+Math.cos(a)*r; c.hy=cy+Math.sin(a)*r; c.rotZ=0; });
   },
 };
 const ARR_KEYS = Object.keys(ARRS);
@@ -857,89 +633,38 @@ let arrIdx=0, currentArr='drift';
 function setArr(name) {
   if (!ARRS[name]) return;
   currentArr=name; arrIdx=ARR_KEYS.indexOf(name);
-  if (['grid','drift','spiral','divine','forest','garden'].includes(name))
-    cards.forEach(c => { c.rotZ=0; });
+  if (!['fan','stack'].includes(name)) cards.forEach(c=>{ c.rotZ=0; });
   document.getElementById('hud-l').textContent=name.toUpperCase();
 }
 
-// ─── Physics ──────────────────────────────────────────────────────────────────
+// ─── Physics (pure spring, no pointer) ───────────────────────────────────────
 
 const K=0.052, DMP=0.79;
-const ptr = {x:cx,y:cy,vx:0,vy:0,speed:0};
-let pullMode=false, grabbedCard=null;
-
-// ─── Landmark smoothing state ─────────────────────────────────────────────────
-let smoothLM = null;          // EMA-smoothed landmark array
-const LM_SMOOTH  = 0.38;      // landmark EMA alpha  (0=frozen, 1=raw)
-const PTR_SMOOTH = 0.26;      // pointer EMA alpha   (lower = silkier, more lag)
-let noHandFrames = 0;         // grace period before releasing grab on lost tracking
-const NO_HAND_GRACE = 10;     // frames before we actually release
-let smoothSpeed  = 0;         // velocity magnitude, also EMA-smoothed
-
-function applyLMSmooth(raw) {
-  if (!smoothLM || smoothLM.length !== raw.length) {
-    smoothLM = raw.map(p => ({x:p.x, y:p.y, z:p.z||0}));
-    return smoothLM;
-  }
-  for (let i = 0; i < raw.length; i++) {
-    smoothLM[i].x += (raw[i].x - smoothLM[i].x) * LM_SMOOTH;
-    smoothLM[i].y += (raw[i].y - smoothLM[i].y) * LM_SMOOTH;
-    smoothLM[i].z += ((raw[i].z||0) - smoothLM[i].z) * LM_SMOOTH;
-  }
-  return smoothLM;
-}
 
 function tick(t) {
   ARRS[currentArr](cards, t);
-  const mx=ptr.x, my=ptr.y, spd=ptr.speed;
-  // Update hand pointer visual state
-  document.getElementById('hand-ptr').classList.toggle('grabbing', !!grabbedCard);
   cards.forEach(c => {
     if (!c.born) return;
-    if (c===grabbedCard) {
-      // Damped spring follow — smooth pull, no snap
-      const dx=mx-c.x, dy=my-c.y;
-      c.vx = c.vx*0.55 + dx*0.22;
-      c.vy = c.vy*0.55 + dy*0.22;
-      c.x+=c.vx; c.y+=c.vy;
-      c.rotX*=0.85; c.rotY*=0.85; c.scale=c.scale*0.92+1.08*0.08;
-    } else {
-      c.vx=(c.vx+(c.hx-c.x)*K*(0.65+0.5*c.depth))*DMP;
-      c.vy=(c.vy+(c.hy-c.y)*K*(0.65+0.5*c.depth))*DMP;
-      const dx=mx-c.x, dy=my-c.y, infl=Math.max(0,1-Math.hypot(dx,dy)/200);
-      if (pullMode&&infl>0.1) { c.vx+=dx*0.030*infl; c.vy+=dy*0.030*infl; }
-      else if (spd>3.5&&infl>0.04) {
-        const ang=Math.atan2(dy,dx), push=spd*0.18*infl;
-        c.vx-=Math.cos(ang)*push; c.vy-=Math.sin(ang)*push;
-      }
-      c.x+=c.vx; c.y+=c.vy;
-      const tilt=Math.min(infl*12,9);
-      c.rotX=c.rotX*0.90+(-((my-cy)/(H/2))*tilt)*0.10;
-      c.rotY=c.rotY*0.90+(((mx-cx)/(W/2))*tilt)*0.10;
-      c.scale=c.scale*0.94+(1+infl*0.05)*0.06;
-    }
-    const fx=Math.cos(t*c.floatFreq+c.phase)*c.floatAmp*0.4;
-    const fy=Math.sin(t*c.floatFreq*1.3+c.phase)*c.floatAmp;
-    c.el.classList.toggle('hovered', Math.hypot(mx-c.x,my-c.y)<140 && c!==grabbedCard);
-    c.el.classList.toggle('grabbed', c===grabbedCard);
-    c.el.style.transform=
+    c.vx = (c.vx + (c.hx-c.x)*K*(0.65+0.5*c.depth)) * DMP;
+    c.vy = (c.vy + (c.hy-c.y)*K*(0.65+0.5*c.depth)) * DMP;
+    c.x += c.vx; c.y += c.vy;
+    const fx = Math.cos(t*c.floatFreq+c.phase)*c.floatAmp*0.38;
+    const fy = Math.sin(t*c.floatFreq*1.3+c.phase)*c.floatAmp;
+    c.rotX *= 0.97; c.rotY *= 0.97;
+    c.scale = c.scale*0.94 + 1.0*0.06;
+    c.el.style.transform =
       `translate(calc(${c.x+fx}px - 50%), calc(${c.y+fy}px - 50%))
        rotateX(${c.rotX.toFixed(2)}deg) rotateY(${c.rotY.toFixed(2)}deg)
        rotateZ(${c.rotZ.toFixed(2)}deg) scale(${c.scale.toFixed(4)})`;
-    const targetOp = 0.55 + c.depth * 0.45;
-    c.el.style.opacity = targetOp.toFixed(2);
-    c.el.style.zIndex=Math.round(c.depth*10+(c===grabbedCard?200:0));
+    c.el.style.opacity = (0.62+c.depth*0.38).toFixed(2);
+    c.el.style.zIndex  = Math.round(c.depth*10);
   });
 }
 
-function nearestCard(x,y,maxD=170) {
-  let best=null, bestD=maxD;
-  cards.forEach(c=>{const d=Math.hypot(c.x-x,c.y-y);if(d<bestD){bestD=d;best=c;}});
-  return best;
-}
 function scatter() {
-  cards.forEach(c=>{
-    const ang=Math.atan2(c.y-ptr.y,c.x-ptr.x),f=6+Math.random()*10;
+  cards.forEach(c => {
+    if (!c.born) return;
+    const ang=Math.atan2(c.y-cy,c.x-cx), f=7+Math.random()*11;
     c.vx+=Math.cos(ang)*f; c.vy+=Math.sin(ang)*f;
   });
 }
@@ -949,13 +674,13 @@ function scatter() {
 let flashTimer=null;
 function flash(txt) {
   const el=document.getElementById('touch-flash');
-  el.textContent=txt; el.style.color='rgba(255,255,255,0.6)';
+  el.textContent=txt; el.style.color='rgba(255,255,255,0.65)';
   clearTimeout(flashTimer);
-  flashTimer=setTimeout(()=>{el.style.color='rgba(255,255,255,0)';},950);
-  document.getElementById('hud-t').textContent=txt;
+  flashTimer=setTimeout(()=>{ el.style.color='rgba(255,255,255,0)'; },1100);
+  document.getElementById('hud-t') && (document.getElementById('hud-t').textContent=txt);
 }
 
-// ─── Hand tracking + touch mapping ───────────────────────────────────────────
+// ─── Gesture-based hand tracking ──────────────────────────────────────────────
 
 const videoEl  = document.getElementById('cam-video');
 const camCv    = document.getElementById('cam-canvas');
@@ -963,85 +688,65 @@ const camCtx   = camCv.getContext('2d');
 const CONN = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],
               [0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
 
-const TOUCH_MAP = {
-  'thumb+index':  {action:'grab',   label:'GRAB'},
-  'thumb+middle': {action:'scatter',label:'SCATTER'},
-  'thumb+ring':   {action:'divine', label:'DIVINE LAYOUT'},
-  'thumb+pinky':  {action:'forest', label:'FOREST LAYOUT'},
-  'index+middle': {action:'grid',   label:'GRID'},
-  'index+ring':   {action:'fan',    label:'FAN'},
-  'index+pinky':  {action:'spiral', label:'SPIRAL'},
-  'middle+ring':  {action:'stack',  label:'STACK'},
-  'ring+pinky':   {action:'garden', label:'GARDEN LAYOUT'},
-};
-const TOUCH_ST={}, TOUCH_CD={};
+// Smoothing
+let smoothLM=null, noHandFrames=0;
+const LM_SMOOTH=0.38, NO_HAND_GRACE=10;
 
-// Hysteresis thresholds — wider release zone prevents boundary flicker
-const TOUCH_ON  = 0.060;
-const TOUCH_OFF = 0.082;
-
-function checkTouch(lm,i1,i2,key) {
-  const td  = Math.hypot(lm[i1].x-lm[i2].x, lm[i1].y-lm[i2].y);
-  const was = TOUCH_ST[key] || false;
-  const on  = td < (was ? TOUCH_OFF : TOUCH_ON);   // hysteresis
-  if (on && !was && (!TOUCH_CD[key] || TOUCH_CD[key]<=0)) {
-    TOUCH_ST[key]=true; TOUCH_CD[key]=28; return true;
+function applyLMSmooth(raw) {
+  if (!smoothLM||smoothLM.length!==raw.length) {
+    smoothLM=raw.map(p=>({x:p.x,y:p.y,z:p.z||0})); return smoothLM;
   }
-  if (!on && was) TOUCH_ST[key]=false;
-  if (TOUCH_CD[key]>0) TOUCH_CD[key]--;
-  return false;
+  for(let i=0;i<raw.length;i++){
+    smoothLM[i].x+=(raw[i].x-smoothLM[i].x)*LM_SMOOTH;
+    smoothLM[i].y+=(raw[i].y-smoothLM[i].y)*LM_SMOOTH;
+    smoothLM[i].z+=((raw[i].z||0)-smoothLM[i].z)*LM_SMOOTH;
+  }
+  return smoothLM;
 }
 
-function execTouch(action,lm) {
-  const ix=(1-lm[8].x)*W, iy=lm[8].y*H;
-  ({grab:()=>{const c=nearestCard(ix,iy,200);if(c){grabbedCard=c;pullMode=true;}},
-    scatter:()=>{scatter();grabbedCard=null;pullMode=false;},
-    divine:()=>setArr('divine'), forest:()=>setArr('forest'),
-    garden:()=>setArr('garden'), grid:()=>setArr('grid'),
-    fan:()=>setArr('fan'), spiral:()=>setArr('spiral'), stack:()=>setArr('stack'),
-  })[action]?.();
-}
+// Gesture state
+let gestHold=0, lastGest='none', confirmedGest='none', gestCooldown=0;
+// Wrist roll state
+let prevHandAngle=null;
+// Swipe state
+let handVelX=0, lastHandCX=null, swipeCooldown=0;
+// Total orbit degrees for HUD
+let orbitDeg=0;
 
 function classifyGesture(lm) {
   const ext=(t,m)=>lm[t].y<lm[m].y-0.04;
   const ie=ext(8,5),me=ext(12,9),re=ext(16,13),pe=ext(20,17);
-  const sp=[ie,me,re,pe].filter(Boolean).length;
   const pd=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
-  if(pd<0.065) return sp>=3?'ok':'pinch';
+  if(pd<0.065){const sp=[ie,me,re,pe].filter(Boolean).length;return sp>=3?'ok':'pinch';}
   if(ie&&pe&&!me&&!re) return 'rock';
   if(ie&&me&&!re&&!pe) return 'peace';
   if(ie&&!me&&!re&&!pe) return 'point';
-  if(sp===4) return 'open';
-  if(sp===0) return 'fist';
+  if([ie,me,re,pe].filter(Boolean).length===4) return 'open';
+  if([ie,me,re,pe].filter(Boolean).length===0) return 'fist';
   return 'none';
 }
 
-let handActive=false, gestHold=0, lastGest='none', confirmedGest='none';
-
 function onHandResults(results) {
-  // Sync cam canvas size once per resolution change
-  const vw = videoEl.videoWidth||320, vh = videoEl.videoHeight||240;
-  if (camCv.width!==vw || camCv.height!==vh) { camCv.width=vw; camCv.height=vh; }
+  const vw=videoEl.videoWidth||320, vh=videoEl.videoHeight||240;
+  if(camCv.width!==vw||camCv.height!==vh){ camCv.width=vw; camCv.height=vh; }
   camCtx.clearRect(0,0,camCv.width,camCv.height);
 
-  if (!results.multiHandLandmarks?.length) {
+  if(!results.multiHandLandmarks?.length){
     noHandFrames++;
-    if (noHandFrames >= NO_HAND_GRACE) {
-      handActive=false; grabbedCard=null; pullMode=false; smoothLM=null;
+    if(noHandFrames>=NO_HAND_GRACE){
+      smoothLM=null; prevHandAngle=null; lastHandCX=null; handVelX=0;
       document.getElementById('cam-label').textContent='○ SEARCHING';
-      document.getElementById('hand-ptr').style.display='none';
+      document.getElementById('gest-glyph').textContent='—';
     }
     return;
   }
   noHandFrames=0;
-  handActive=true;
   document.getElementById('cam-label').textContent='● TRACKING';
 
-  // Apply per-landmark EMA smoothing before any logic
-  const lm = applyLMSmooth(results.multiHandLandmarks[0]);
+  const lm=applyLMSmooth(results.multiHandLandmarks[0]);
   const cw=camCv.width, ch=camCv.height;
 
-  // Draw skeleton on pip cam
+  // Skeleton overlay on pip cam
   CONN.forEach(([a,b])=>{
     camCtx.beginPath();
     camCtx.moveTo(lm[a].x*cw,lm[a].y*ch);
@@ -1050,37 +755,74 @@ function onHandResults(results) {
   });
   [4,8,12,16,20].forEach(i=>{
     camCtx.beginPath(); camCtx.arc(lm[i].x*cw,lm[i].y*ch,2.8,0,TAU);
-    camCtx.fillStyle='rgba(220,255,200,0.9)'; camCtx.fill();
+    camCtx.fillStyle='rgba(220,255,200,0.90)'; camCtx.fill();
   });
 
-  // ── Pointer: EMA on screen coords → silky movement ──────────────────────────
-  const rawX = (1-lm[8].x)*W, rawY = lm[8].y*H;
-  const tX = ptr.x + (rawX - ptr.x) * PTR_SMOOTH;
-  const tY = ptr.y + (rawY - ptr.y) * PTR_SMOOTH;
-  const dX = tX - ptr.x, dY = tY - ptr.y;
-  // EMA on speed so card-push force doesn't spike on single noisy frames
-  smoothSpeed = smoothSpeed * 0.72 + Math.hypot(dX, dY) * 0.28;
-  ptr.vx=dX; ptr.vy=dY; ptr.speed=smoothSpeed;
-  ptr.x=tX; ptr.y=tY;
-
-  const hp=document.getElementById('hand-ptr');
-  hp.style.display='block'; hp.style.left=tX+'px'; hp.style.top=tY+'px';
-
-  // ── Gesture debounce: require 4 steady frames before committing ──────────────
-  const g=classifyGesture(lm);
-  if (g===lastGest) { gestHold++; } else { gestHold=0; lastGest=g; }
-  if (gestHold===4) { confirmedGest=g; document.getElementById('hud-g').textContent=g.toUpperCase(); }
-
-  // ── Touch finger pairs (on smoothed LM) ─────────────────────────────────────
-  [[4,8,'thumb+index'],[4,12,'thumb+middle'],[4,16,'thumb+ring'],[4,20,'thumb+pinky'],
-   [8,12,'index+middle'],[8,16,'index+ring'],[8,20,'index+pinky'],
-   [12,16,'middle+ring'],[16,20,'ring+pinky']].forEach(([i1,i2,key])=>{
-    if (checkTouch(lm,i1,i2,key) && TOUCH_MAP[key]) {
-      const m=TOUCH_MAP[key]; flash(m.label); execTouch(m.action,lm);
+  // ── WRIST ROLL → orbit offset ──────────────────────────────────────────────
+  // Use angle of wrist (lm[0]) → middle MCP (lm[9]) axis
+  const rawAngle = Math.atan2(lm[9].y-lm[0].y, lm[9].x-lm[0].x);
+  if (prevHandAngle !== null) {
+    let dA = rawAngle - prevHandAngle;
+    if (dA >  Math.PI) dA -= TAU;
+    if (dA < -Math.PI) dA += TAU;
+    // Only accumulate meaningful increments (filter noise)
+    if (Math.abs(dA) < 0.10 && Math.abs(dA) > 0.004) {
+      orbitOffset += dA * 0.28;
+      orbitDeg = Math.round(orbitOffset * 180/Math.PI) % 360;
+      document.getElementById('hud-r').textContent = orbitDeg + '°';
     }
-  });
+  }
+  prevHandAngle = rawAngle;
 
-  if (!TOUCH_ST['thumb+index']) { pullMode=false; grabbedCard=null; }
+  // ── LATERAL SWIPE → cycle layout ──────────────────────────────────────────
+  // Track horizontal center of wrist+mid for swipe
+  const hcx = (lm[0].x + lm[9].x) * 0.5;
+  if (lastHandCX !== null && swipeCooldown <= 0) {
+    const dx = hcx - lastHandCX;
+    handVelX = handVelX*0.65 + dx*0.35;
+    if (Math.abs(handVelX) > 0.028) {
+      // Mirrored: camera x is flipped, so positive dx = moving right on screen
+      const dir = handVelX > 0 ? 1 : -1;
+      arrIdx = (arrIdx + dir + ARR_KEYS.length) % ARR_KEYS.length;
+      setArr(ARR_KEYS[arrIdx]);
+      flash((dir>0?'→ ':'← ') + ARR_KEYS[arrIdx].toUpperCase());
+      swipeCooldown = 55; handVelX = 0;
+    }
+  }
+  lastHandCX = hcx;
+  if (swipeCooldown > 0) swipeCooldown--;
+
+  // ── HELD GESTURE → layout change ──────────────────────────────────────────
+  const g = classifyGesture(lm);
+  if (g === lastGest) { gestHold++; } else { gestHold=0; lastGest=g; }
+
+  if (gestHold === 5) {
+    confirmedGest = g;
+    document.getElementById('hud-g').textContent = g.toUpperCase();
+    document.getElementById('gest-glyph').textContent = g.toUpperCase();
+  }
+
+  // Trigger layout on hold — one trigger per gesture episode
+  if (gestHold === 10 && gestCooldown <= 0) {
+    const LAY = {
+      open:'drift', fist:'stack', peace:'fan',
+      rock:'divine', point:'spiral', ok:'garden', pinch:'grid'
+    };
+    const lay = LAY[g];
+    if (lay && lay !== currentArr) {
+      setArr(lay); flash(lay.toUpperCase()); gestCooldown = 70;
+    }
+  }
+  if (gestCooldown > 0) gestCooldown--;
+
+  // Scatter on fast open-palm flick (open gesture + high wrist velocity)
+  if (g === 'open' && gestHold === 2) {
+    const wristVel = Math.abs(lm[0].y - (prevHandAngle !== null ? lm[0].y : lm[0].y));
+    // Use horizontal wrist speed as a proxy for flick
+    if (Math.abs(handVelX) > 0.045 && swipeCooldown <= 0) {
+      scatter(); flash('SCATTER');
+    }
+  }
 }
 
 // ─── Camera start ─────────────────────────────────────────────────────────────
@@ -1090,8 +832,12 @@ function startCamera() {
   hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.68,minTrackingConfidence:0.55});
   hands.onResults(onHandResults);
   const cam=new Camera(videoEl,{
-    onFrame:async()=>{ camCv.width=videoEl.videoWidth||320; camCv.height=videoEl.videoHeight||240; await hands.send({image:videoEl}); },
-    width:640,height:480,
+    onFrame:async()=>{
+      const vw=videoEl.videoWidth||320, vh=videoEl.videoHeight||240;
+      if(camCv.width!==vw||camCv.height!==vh){camCv.width=vw;camCv.height=vh;}
+      await hands.send({image:videoEl});
+    },
+    width:640, height:480,
   });
   cam.start().then(()=>{
     document.getElementById('cam-wrap').style.opacity='0.88';
@@ -1106,22 +852,47 @@ function skipCam() {
 document.getElementById('perm-btn').addEventListener('click',startCamera);
 document.getElementById('skip-btn').addEventListener('click',skipCam);
 
-// ─── Divine intro sequence ────────────────────────────────────────────────────
+// ─── Keyboard ─────────────────────────────────────────────────────────────────
 
-let introActive = true;
+window.addEventListener('keydown',e=>{
+  const m={'1':'drift','2':'grid','3':'fan','4':'stack','5':'spiral','6':'divine','7':'forest','8':'garden'};
+  if(m[e.key]) { setArr(m[e.key]); flash(m[e.key].toUpperCase()); }
+  if(e.key===' '){ e.preventDefault(); scatter(); flash('SCATTER'); }
+  if(e.key==='Tab'){ e.preventDefault(); arrIdx=(arrIdx+1)%ARR_KEYS.length; setArr(ARR_KEYS[arrIdx]); flash(ARR_KEYS[arrIdx].toUpperCase()); }
+  if(e.key==='ArrowLeft')  { orbitOffset-=0.15; }
+  if(e.key==='ArrowRight') { orbitOffset+=0.15; }
+});
+
+window.addEventListener('resize',()=>{
+  W=innerWidth; H=innerHeight; cx=W/2; cy=H/2;
+  bgCv.width=W; bgCv.height=H;
+  const ic=document.getElementById('intro');
+  if(ic.style.display!=='none'){ ic.width=W; ic.height=H; }
+});
+
+// ─── Main loop ────────────────────────────────────────────────────────────────
+
+let frame=0, introActive=true;
+function loop(ts) {
+  requestAnimationFrame(loop); frame++;
+  drawGarden(ts);
+  if (!introActive) tick(ts);
+}
+
+// ─── Divine intro sequence ────────────────────────────────────────────────────
 
 function spawnCards() {
   introActive = false;
-  cards.forEach((c, i) => {
-    setTimeout(() => {
+  cards.forEach((c,i) => {
+    setTimeout(()=>{
       c.x  = cx + (Math.random()-0.5)*50;
       c.y  = cy + (Math.random()-0.5)*50;
       c.vx = (Math.random()-0.5)*16;
       c.vy = (Math.random()-0.5)*12;
       c.scale = 0.12;
-      c.born = true;
-      c.el.style.transition = 'opacity 0.55s ease-out';
-    }, i * 58 + 80);
+      c.born  = true;
+      c.el.style.transition='opacity 0.55s ease-out';
+    }, i*58+80);
   });
 }
 
@@ -1130,203 +901,120 @@ function runIntro() {
   const ctx = cv.getContext('2d');
   cv.width  = W; cv.height = H;
 
-  const sparks = Array.from({length:44}, () => ({
-    a:  Math.random()*TAU,
-    r:  22 + Math.random()*108,
-    s:  0.28 + Math.random()*0.72,
-    ph: Math.random()*TAU,
+  const sparks = Array.from({length:44},()=>({
+    a:Math.random()*TAU, r:22+Math.random()*108,
+    s:0.28+Math.random()*0.72, ph:Math.random()*TAU,
   }));
 
-  const DUR   = 4600; // ms total
-  const START = performance.now();
+  const DUR=4600, START=performance.now();
 
-  function drawIntroRing(t, r, tS, tE, ccw, op) {
-    const p = Math.max(0, Math.min((t-tS)/(tE-tS), 1));
-    if (p <= 0) return;
-    const ox=W/2, oy=H/2, a0=-Math.PI/2;
+  function drawIntroRing(t,r,tS,tE,ccw,op){
+    const p=Math.max(0,Math.min((t-tS)/(tE-tS),1));
+    if(p<=0) return;
+    const ox=W/2,oy=H/2,a0=-Math.PI/2;
     ctx.beginPath();
-    ctx.arc(ox, oy, r, a0, a0 + (ccw?-1:1)*Math.PI*2*p, ccw);
-    ctx.strokeStyle = `rgba(255,214,90,${op})`;
-    ctx.lineWidth = 0.75;
-    ctx.stroke();
+    ctx.arc(ox,oy,r,a0,a0+(ccw?-1:1)*Math.PI*2*p,ccw);
+    ctx.strokeStyle=`rgba(255,214,90,${op})`; ctx.lineWidth=0.75; ctx.stroke();
   }
 
-  function drawLetter(ch, ox, x, y, alpha) {
-    ctx.save();
-    ctx.shadowColor = 'rgba(255,210,80,0.7)';
-    ctx.shadowBlur  = 18;
-    ctx.fillStyle   = `rgba(255,248,215,${alpha})`;
-    ctx.fillText(ch, ox + x, y);
-    ctx.shadowBlur  = 0;
-    ctx.restore();
-  }
+  function frame(now){
+    const t=Math.min((now-START)/DUR,1);
+    const bgAlpha=t<0.64?1:Math.max(0,1-(t-0.64)/0.36);
+    const gAlpha=t<0.64?Math.min(t/0.07,1):Math.max(0,1-(t-0.64)/0.28);
 
-  function frame(now) {
-    const t       = Math.min((now - START) / DUR, 1);
-    const bgAlpha = t < 0.64 ? 1 : Math.max(0, 1-(t-0.64)/0.36);
-    const gAlpha  = t < 0.64 ? Math.min(t/0.07, 1) : Math.max(0, 1-(t-0.64)/0.28);
+    ctx.clearRect(0,0,W,H);
+    if(bgAlpha>0.005){ ctx.fillStyle=`rgba(5,3,12,${bgAlpha})`; ctx.fillRect(0,0,W,H); }
 
-    ctx.clearRect(0, 0, W, H);
+    const ox=W/2,oy=H/2;
 
-    // Dark background
-    if (bgAlpha > 0.005) {
-      ctx.fillStyle = `rgba(5,3,12,${bgAlpha})`;
-      ctx.fillRect(0, 0, W, H);
-    }
+    if(gAlpha>0.005){
+      ctx.save(); ctx.globalAlpha=gAlpha;
+      const cg=ctx.createRadialGradient(ox,oy,0,ox,oy,68);
+      cg.addColorStop(0,'rgba(255,235,140,0.38)'); cg.addColorStop(0.4,'rgba(255,218,90,0.12)'); cg.addColorStop(1,'rgba(255,195,50,0)');
+      ctx.fillStyle=cg; ctx.fillRect(0,0,W,H);
 
-    const ox = W/2, oy = H/2;
+      drawIntroRing(t,40,0.04,0.30,false,0.62);
+      drawIntroRing(t,68,0.10,0.36,true, 0.46);
+      drawIntroRing(t,98,0.17,0.43,false,0.30);
+      drawIntroRing(t,130,0.23,0.50,true, 0.17);
+      drawIntroRing(t,162,0.28,0.56,false,0.10);
 
-    if (gAlpha > 0.005) {
-      ctx.save();
-      ctx.globalAlpha = gAlpha;
-
-      // Center radial glow
-      const cg = ctx.createRadialGradient(ox, oy, 0, ox, oy, 68);
-      cg.addColorStop(0,   'rgba(255,235,140,0.38)');
-      cg.addColorStop(0.4, 'rgba(255,218,90,0.12)');
-      cg.addColorStop(1,   'rgba(255,195,50,0)');
-      ctx.fillStyle = cg; ctx.fillRect(0, 0, W, H);
-
-      // Concentric rings draw themselves in
-      drawIntroRing(t, 40,  0.04, 0.30, false, 0.62);
-      drawIntroRing(t, 68,  0.10, 0.36, true,  0.46);
-      drawIntroRing(t, 98,  0.17, 0.43, false, 0.30);
-      drawIntroRing(t, 130, 0.23, 0.50, true,  0.17);
-      drawIntroRing(t, 162, 0.28, 0.56, false, 0.10);
-
-      // 6-fold radial lines
-      const lineP = Math.max(0, Math.min((t-0.14)/0.26, 1));
-      if (lineP > 0) {
-        for (let i = 0; i < 6; i++) {
-          const a = i*Math.PI/3 - Math.PI/6;
-          ctx.beginPath();
-          ctx.moveTo(ox, oy);
-          ctx.lineTo(ox+Math.cos(a)*148*lineP, oy+Math.sin(a)*148*lineP);
-          ctx.strokeStyle = `rgba(255,218,100,${0.18*lineP})`;
-          ctx.lineWidth = 0.65;
-          ctx.stroke();
+      const lineP=Math.max(0,Math.min((t-0.14)/0.26,1));
+      if(lineP>0){
+        for(let i=0;i<6;i++){
+          const a=i*Math.PI/3-Math.PI/6;
+          ctx.beginPath(); ctx.moveTo(ox,oy);
+          ctx.lineTo(ox+Math.cos(a)*148*lineP,oy+Math.sin(a)*148*lineP);
+          ctx.strokeStyle=`rgba(255,218,100,${0.18*lineP})`; ctx.lineWidth=0.65; ctx.stroke();
         }
       }
 
-      // Intersection accent dots
-      const dotP = Math.max(0, Math.min((t-0.28)/0.18, 1));
-      if (dotP > 0) {
-        for (let i = 0; i < 6; i++) {
-          const a = i*Math.PI/3 - Math.PI/6;
-          ctx.beginPath();
-          ctx.arc(ox+Math.cos(a)*68, oy+Math.sin(a)*68, 3.2*dotP, 0, TAU);
-          ctx.strokeStyle = `rgba(255,225,130,${0.62*dotP})`;
-          ctx.lineWidth = 0.75;
-          ctx.stroke();
+      const dotP=Math.max(0,Math.min((t-0.28)/0.18,1));
+      if(dotP>0){
+        for(let i=0;i<6;i++){
+          const a=i*Math.PI/3-Math.PI/6;
+          ctx.beginPath(); ctx.arc(ox+Math.cos(a)*68,oy+Math.sin(a)*68,3.2*dotP,0,TAU);
+          ctx.strokeStyle=`rgba(255,225,130,${0.62*dotP})`; ctx.lineWidth=0.75; ctx.stroke();
         }
-        // Outer 12 dots
-        const dot2P = Math.max(0, Math.min((t-0.34)/0.14, 1));
-        if (dot2P > 0) {
-          for (let i = 0; i < 12; i++) {
-            const a = i*Math.PI/6;
-            ctx.beginPath();
-            ctx.arc(ox+Math.cos(a)*130, oy+Math.sin(a)*130, 1.8*dot2P, 0, TAU);
-            ctx.strokeStyle = `rgba(255,230,150,${0.38*dot2P})`;
-            ctx.lineWidth = 0.6;
-            ctx.stroke();
-          }
+        const d2P=Math.max(0,Math.min((t-0.34)/0.14,1));
+        if(d2P>0) for(let i=0;i<12;i++){
+          const a=i*Math.PI/6;
+          ctx.beginPath(); ctx.arc(ox+Math.cos(a)*130,oy+Math.sin(a)*130,1.8*d2P,0,TAU);
+          ctx.strokeStyle=`rgba(255,230,150,${0.38*d2P})`; ctx.lineWidth=0.6; ctx.stroke();
         }
       }
 
-      // Chord lines connecting ring intersections
-      const chordP = Math.max(0, Math.min((t-0.34)/0.22, 1));
-      if (chordP > 0) {
-        for (let i = 0; i < 6; i++) {
-          const a1 = i*Math.PI/3-Math.PI/6, a2=(i+2)*Math.PI/3-Math.PI/6;
-          const x1=ox+Math.cos(a1)*68, y1=oy+Math.sin(a1)*68;
-          const x2=ox+Math.cos(a2)*68, y2=oy+Math.sin(a2)*68;
-          const mx2=x1+(x2-x1)*chordP, my2=y1+(y2-y1)*chordP;
-          ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(mx2,my2);
-          ctx.strokeStyle=`rgba(255,220,110,${0.20*chordP})`;
-          ctx.lineWidth=0.6; ctx.stroke();
-        }
+      const chordP=Math.max(0,Math.min((t-0.34)/0.22,1));
+      if(chordP>0) for(let i=0;i<6;i++){
+        const a1=i*Math.PI/3-Math.PI/6, a2=(i+2)*Math.PI/3-Math.PI/6;
+        const x1=ox+Math.cos(a1)*68,y1=oy+Math.sin(a1)*68;
+        const x2=ox+Math.cos(a2)*68,y2=oy+Math.sin(a2)*68;
+        ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1+(x2-x1)*chordP,y1+(y2-y1)*chordP);
+        ctx.strokeStyle=`rgba(255,220,110,${0.20*chordP})`; ctx.lineWidth=0.6; ctx.stroke();
       }
 
-      // Floating sparks
-      const spkP = Math.max(0, Math.min((t-0.22)/0.32, 1)) * (t<0.58?1:Math.max(0,1-(t-0.58)/0.14));
-      if (spkP > 0) {
-        sparks.forEach(sp => {
-          const sx = ox + Math.cos(sp.a + t*0.28) * sp.r;
-          const sy = oy + Math.sin(sp.a + t*0.28*sp.s) * sp.r * 0.65;
-          const bri = (Math.sin(t*7*sp.s + sp.ph)*0.5+0.5) * spkP;
-          if (bri < 0.02) return;
-          ctx.beginPath();
-          ctx.arc(sx, sy, 1, 0, TAU);
-          ctx.fillStyle = `rgba(255,235,155,${bri*0.72})`;
-          ctx.fill();
-        });
-      }
-
-      ctx.restore();
-    }
-
-    // Text layer — appears and fades independently
-    const textAlpha = t>0.37 ? Math.min((t-0.37)/0.16,1)*(t<0.60?1:Math.max(0,1-(t-0.60)/0.32)) : 0;
-    if (textAlpha > 0.01) {
-      ctx.save();
-      ctx.textAlign    = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font         = '300 20px "Courier New", monospace';
-
-      // Letter-by-letter reveal of E U D A I M O N
-      const letters = 'EUDAIMON'.split('');
-      const spacing = 24;
-      const totalW  = (letters.length-1)*spacing;
-      letters.forEach((ch, li) => {
-        const lT = Math.max(0, Math.min((t-0.37-li*0.012)/0.10, 1)) * textAlpha;
-        if (lT > 0.01) drawLetter(ch, ox, -totalW/2 + li*spacing, oy-16, lT);
+      const spkP=Math.max(0,Math.min((t-0.22)/0.32,1))*(t<0.58?1:Math.max(0,1-(t-0.58)/0.14));
+      if(spkP>0) sparks.forEach(sp=>{
+        const sx=ox+Math.cos(sp.a+t*0.28)*sp.r, sy=oy+Math.sin(sp.a+t*0.28*sp.s)*sp.r*0.65;
+        const bri=(Math.sin(t*7*sp.s+sp.ph)*0.5+0.5)*spkP;
+        if(bri<0.02) return;
+        ctx.beginPath(); ctx.arc(sx,sy,1,0,TAU);
+        ctx.fillStyle=`rgba(255,235,155,${bri*0.72})`; ctx.fill();
       });
 
-      // Subtitle
-      const subA = t>0.50 ? Math.min((t-0.50)/0.12,1)*textAlpha : 0;
-      if (subA > 0.01) {
-        ctx.font      = '300 7.5px "Courier New", monospace';
-        ctx.fillStyle = `rgba(255,232,172,${subA*0.48})`;
-        ctx.fillText('G A R D E N  ·  2 0 2 6', ox, oy+16);
+      ctx.restore();
+    }
+
+    const textAlpha=t>0.37?Math.min((t-0.37)/0.16,1)*(t<0.60?1:Math.max(0,1-(t-0.60)/0.32)):0;
+    if(textAlpha>0.01){
+      ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.font='300 20px "Courier New", monospace';
+      const letters='EUDAIMON'.split(''), spacing=24, totalW=(letters.length-1)*spacing;
+      letters.forEach((ch,li)=>{
+        const lT=Math.max(0,Math.min((t-0.37-li*0.012)/0.10,1))*textAlpha;
+        if(lT>0.01){
+          ctx.save(); ctx.shadowColor='rgba(255,210,80,0.7)'; ctx.shadowBlur=18;
+          ctx.fillStyle=`rgba(255,248,215,${lT})`;
+          ctx.fillText(ch, ox-totalW/2+li*spacing, oy-16);
+          ctx.restore();
+        }
+      });
+      const subA=t>0.50?Math.min((t-0.50)/0.12,1)*textAlpha:0;
+      if(subA>0.01){
+        ctx.font='300 7.5px "Courier New", monospace';
+        ctx.fillStyle=`rgba(255,232,172,${subA*0.48})`;
+        ctx.fillText('G A R D E N  ·  2 0 2 6',ox,oy+16);
       }
       ctx.restore();
     }
 
-    if (t < 1) {
-      requestAnimationFrame(frame);
-    } else {
-      cv.style.display = 'none';
-      spawnCards();
-    }
+    if(t<1){ requestAnimationFrame(frame); }
+    else { cv.style.display='none'; spawnCards(); }
   }
-
   requestAnimationFrame(frame);
 }
 
-// ─── Keyboard ─────────────────────────────────────────────────────────────────
-
-window.addEventListener('keydown',e=>{
-  const m={'1':'drift','2':'grid','3':'fan','4':'stack','5':'spiral','6':'divine','7':'forest','8':'garden'};
-  if(m[e.key]) setArr(m[e.key]);
-  if(e.key===' '){e.preventDefault();scatter();}
-  if(e.key==='Tab'){e.preventDefault();arrIdx=(arrIdx+1)%ARR_KEYS.length;setArr(ARR_KEYS[arrIdx]);}
-});
-
-window.addEventListener('resize',()=>{
-  W=innerWidth; H=innerHeight; cx=W/2; cy=H/2;
-  bgCv.width=W; bgCv.height=H;
-  const ic=document.getElementById('intro');
-  if (ic.style.display!=='none') { ic.width=W; ic.height=H; }
-});
-
-// ─── Main loop ────────────────────────────────────────────────────────────────
-
-let frame=0;
-function loop(ts) {
-  requestAnimationFrame(loop); frame++;
-  drawGarden(ts);
-  if (!introActive) tick(ts);
-}
+// ─── Init ─────────────────────────────────────────────────────────────────────
 
 bgCv.width=W; bgCv.height=H;
 buildCards();
