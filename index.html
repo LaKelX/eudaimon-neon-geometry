@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eudaimon — Neon Geometry</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; }
+
+  #ui {
+    position: fixed; top: 24px; left: 24px;
+    color: rgba(255,255,255,0.55); font-size: 11px; line-height: 1.9;
+    pointer-events: none; letter-spacing: 0.08em;
+  }
+  #ui .label { color: rgba(255,255,255,0.25); }
+  #ui .val   { color: rgba(120,220,255,0.9); }
+
+  #modes {
+    position: fixed; bottom: 28px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 10px;
+  }
+  .mode-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.45);
+    padding: 6px 14px; border-radius: 20px;
+    font-family: 'Courier New', monospace; font-size: 10px;
+    cursor: pointer; letter-spacing: 0.06em;
+    transition: all 0.25s;
+  }
+  .mode-btn:hover, .mode-btn.active {
+    background: rgba(100,200,255,0.12);
+    border-color: rgba(100,200,255,0.4);
+    color: rgba(180,240,255,0.95);
+  }
+
+  #title {
+    position: fixed; top: 24px; right: 28px;
+    text-align: right; pointer-events: none;
+  }
+  #title h1 {
+    font-size: 13px; font-weight: 400; letter-spacing: 0.22em;
+    color: rgba(255,255,255,0.7); font-family: 'Courier New', monospace;
+  }
+  #title p {
+    font-size: 9px; letter-spacing: 0.14em;
+    color: rgba(255,255,255,0.25); margin-top: 3px;
+    font-family: 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div><span class="label">MODE  </span><span class="val" id="uiMode">FLOWER OF LIFE</span></div>
+  <div><span class="label">PALETTE </span><span class="val" id="uiPalette">EUDAIMON</span></div>
+  <div><span class="label">ENERGY </span><span class="val" id="uiEnergy">0.000</span></div>
+  <div><span class="label">PARTICLES </span><span class="val" id="uiParticles">0</span></div>
+  <div style="margin-top:8px; color:rgba(255,255,255,0.18); font-size:9px;">MOVE MOUSE · CLICK TO BURST</div>
+</div>
+
+<div id="title">
+  <h1>EUDAIMON</h1>
+  <p>NEON GEOMETRY SYSTEM</p>
+</div>
+
+<div id="modes">
+  <button class="mode-btn active" data-mode="flower">FLOWER</button>
+  <button class="mode-btn" data-mode="metatron">METATRON</button>
+  <button class="mode-btn" data-mode="sri">SRI YANTRA</button>
+  <button class="mode-btn" data-mode="trail">TRAIL</button>
+  <button class="mode-btn" data-mode="burst">BURST</button>
+  <button class="mode-btn" data-mode="constellation">CONSTEL</button>
+  <button class="mode-btn" data-mode="chaos">CHAOS</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const TAU    = Math.PI * 2;
+
+// ─── State ──────────────────────────────────────────────────────────────────
+
+let W, H, cx, cy;
+let mouse = { x: 0, y: 0, px: 0, py: 0, speed: 0 };
+let frame = 0;
+let mode  = 'flower';
+let energy = 0;
+
+const PALETTES = {
+  cosmic:   [[200,0.9,1],[270,0.8,1],[180,0.7,1]],
+  fire:     [[0,0.9,1],  [30,1,1],   [55,0.8,1]],
+  earth:    [[120,0.8,0.9],[80,0.7,1],[40,0.6,0.9]],
+  aether:   [[240,0.2,1],[200,0.1,1],[280,0.3,1]],
+  eudaimon: [[195,0.95,1],[45,1,1],  [285,0.9,1]],
+};
+const PALETTE_NAMES = Object.keys(PALETTES);
+const MODE_PALETTES = {
+  flower: 'eudaimon', metatron: 'cosmic', sri: 'earth',
+  trail: 'aether', burst: 'fire', constellation: 'cosmic', chaos: 'fire',
+};
+
+let currentPalette = 'eudaimon';
+let hue = 0;
+
+// LFOs
+const lfos = {
+  breath:  { freq:0.18, phase:0.00, shape:'sine' },
+  pulse:   { freq:0.70, phase:0.25, shape:'sine' },
+  shimmer: { freq:3.10, phase:0.50, shape:'tri'  },
+  orbit:   { freq:0.08, phase:0.33, shape:'saw'  },
+};
+function lfoVal(lfo, t) {
+  const v = ((lfo.phase + lfo.freq * t) % 1 + 1) % 1;
+  if (lfo.shape === 'sine')   return Math.sin(v * TAU) * 0.5 + 0.5;
+  if (lfo.shape === 'tri')    return 1 - Math.abs(v * 2 - 1);
+  if (lfo.shape === 'saw')    return v;
+  if (lfo.shape === 'square') return v < 0.5 ? 1 : 0;
+  return Math.sin(v * TAU) * 0.5 + 0.5;
+}
+
+// Particles
+const particles = [];
+const MAX_P = 700;
+
+// Trail history (5 fingers simulated from mouse)
+const trails = Array.from({length:5}, () => []);
+const TRAIL_LEN = 55;
+
+// Beat flash
+let beatFlash = 0;
+
+// ─── Color ──────────────────────────────────────────────────────────────────
+
+function hsv2rgb(h, s, v) {
+  h = h > 1 ? h / 360 : h;
+  const i = Math.floor(h * 6);
+  const f = h * 6 - i;
+  const p = v * (1-s), q = v*(1-s*f), t = v*(1-s*(1-f));
+  const m = [[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6];
+  return `rgb(${(m[0]*255)|0},${(m[1]*255)|0},${(m[2]*255)|0})`;
+}
+
+function paletteColor(hueN, palName) {
+  const stops = PALETTES[palName] || PALETTES.eudaimon;
+  const t  = hueN * (stops.length - 1);
+  const lo = Math.floor(t) % stops.length;
+  const hi = (lo + 1) % stops.length;
+  const f  = t - Math.floor(t);
+  const H  = stops[lo][0] + (stops[hi][0] - stops[lo][0]) * f;
+  const S  = stops[lo][1] + (stops[hi][1] - stops[lo][1]) * f;
+  const V  = stops[lo][2] + (stops[hi][2] - stops[lo][2]) * f;
+  return hsv2rgb(H, S, V);
+}
+
+function paletteRGB(hueN, palName) {
+  const stops = PALETTES[palName] || PALETTES.eudaimon;
+  const t  = hueN * (stops.length - 1);
+  const lo = Math.floor(t) % stops.length;
+  const hi = (lo + 1) % stops.length;
+  const f  = t - Math.floor(t);
+  const H  = (stops[lo][0] + (stops[hi][0] - stops[lo][0]) * f) / 360;
+  const S  = stops[lo][1] + (stops[hi][1] - stops[lo][1]) * f;
+  const V  = stops[lo][2] + (stops[hi][2] - stops[lo][2]) * f;
+  const i  = Math.floor(H * 6);
+  const ff = H * 6 - i;
+  const p  = V*(1-S), q = V*(1-S*ff), tt = V*(1-S*(1-ff));
+  return [[V,tt,p],[q,V,p],[p,V,tt],[p,q,V],[tt,p,V],[V,p,q]][i%6];
+}
+
+// ─── Sacred Geometry ────────────────────────────────────────────────────────
+
+function flowerOfLife(scale) {
+  const r = scale * 0.15;
+  const pts = [{x:0, y:0, r}];
+  for (let i=0; i<6; i++) {
+    const a = i * TAU/6;
+    pts.push({x: Math.cos(a)*r, y: Math.sin(a)*r, r});
+  }
+  for (let i=0; i<12; i++) {
+    const a = i * TAU/12;
+    pts.push({x: Math.cos(a)*r*2, y: Math.sin(a)*r*2, r});
+  }
+  return pts;
+}
+
+function metatronCube(scale) {
+  const r = scale * 0.13;
+  const pts = [{x:0, y:0, r}];
+  for (let i=0; i<6; i++) {
+    const a = i * TAU/6;
+    pts.push({x: Math.cos(a)*r*2, y: Math.sin(a)*r*2, r});
+  }
+  for (let i=0; i<6; i++) {
+    const a = i * TAU/6 + TAU/12;
+    pts.push({x: Math.cos(a)*r*3.46, y: Math.sin(a)*r*3.46, r});
+  }
+  return pts;
+}
+
+function sriYantra(scale) {
+  const radii = [0.04,0.07,0.10,0.14,0.18,0.23,0.28,0.34,0.40].map(r=>r*scale);
+  const pts = [];
+  radii.forEach((r, idx) => {
+    const off = idx % 2 === 0 ? 0 : Math.PI/3;
+    for (let k=0; k<3; k++) {
+      const a = off + k * TAU/3;
+      pts.push({x: Math.cos(a)*r, y: Math.sin(a)*r, r: 0.012*scale});
+    }
+  });
+  pts.push({x:0, y:0, r: 0.022*scale});
+  return pts;
+}
+
+function chaosField(scale, seed=777) {
+  const rng = seededRng(seed);
+  const pts = [];
+  for (let i=0; i<30; i++) {
+    const a = rng() * TAU;
+    const d = Math.pow(rng(), 0.6) * 0.42 * scale;
+    const r = (0.008 + rng() * 0.055) * scale;
+    pts.push({x: Math.cos(a)*d, y: Math.sin(a)*d, r});
+  }
+  return pts;
+}
+
+function vesicaPiscis(scale) {
+  const r   = 0.20 * scale;
+  const off = r * 0.5;
+  const iy  = Math.sqrt(r*r - off*off);
+  return [
+    {x:-off, y:0, r},
+    {x: off, y:0, r},
+    {x:0, y: iy, r:0.018*scale},
+    {x:0, y:-iy, r:0.018*scale},
+  ];
+}
+
+function seededRng(seed) {
+  let s = seed;
+  return () => { s = (s * 16807 + 0) % 2147483647; return (s-1)/2147483646; };
+}
+
+function getGeometry(mode, scale) {
+  switch(mode) {
+    case 'flower':        return flowerOfLife(scale);
+    case 'metatron':      return metatronCube(scale);
+    case 'sri':           return sriYantra(scale);
+    case 'chaos':         return chaosField(scale);
+    case 'constellation': return vesicaPiscis(scale);
+    default:              return flowerOfLife(scale);
+  }
+}
+
+// ─── Particle System ────────────────────────────────────────────────────────
+
+function spawnBurst(x, y, count, speedScale, hueBase) {
+  for (let i=0; i<count; i++) {
+    if (particles.length >= MAX_P) break;
+    const a  = Math.random() * TAU;
+    const sp = (0.4 + Math.random() * 2.0) * speedScale;
+    particles.push({
+      x, y,
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+      life: 1.0,
+      decay: 0.012 + Math.random() * 0.018,
+      hue: (hueBase + Math.random() * 0.3) % 1,
+      size: 1.5 + Math.random() * 3.5,
+      spin: (Math.random()-0.5)*0.015,
+    });
+  }
+}
+
+function tickParticles() {
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x  += p.vx; p.y += p.vy;
+    p.vx *= 0.92; p.vy *= 0.92;
+    p.vy += 0.015;
+    p.hue = (p.hue + p.spin + 1) % 1;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i,1);
+  }
+}
+
+// ─── Draw Helpers ────────────────────────────────────────────────────────────
+
+function drawGlowCircle(x, y, r, color, glowR, alpha=1) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+  g.addColorStop(0,   color.replace('rgb(', 'rgba(').replace(')', `,${alpha})`));
+  g.addColorStop(0.3, color.replace('rgb(', 'rgba(').replace(')', `,${alpha*0.5})`));
+  g.addColorStop(1,   color.replace('rgb(', 'rgba(').replace(')', ',0)'));
+  ctx.beginPath();
+  ctx.arc(x, y, glowR, 0, TAU);
+  ctx.fillStyle = g;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, TAU);
+  ctx.strokeStyle = color.replace('rgb(', 'rgba(').replace(')', `,${alpha})`);
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawLine(x1, y1, x2, y2, color, alpha, width=1) {
+  ctx.beginPath();
+  ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  ctx.strokeStyle = color.replace('rgb(', 'rgba(').replace(')', `,${alpha})`);
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+// ─── Resize ──────────────────────────────────────────────────────────────────
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  cx = W/2; cy = H/2;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ─── Input ───────────────────────────────────────────────────────────────────
+
+window.addEventListener('mousemove', e => {
+  mouse.px = mouse.x; mouse.py = mouse.y;
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  const dx = mouse.x - mouse.px, dy = mouse.y - mouse.py;
+  mouse.speed = Math.min(Math.sqrt(dx*dx+dy*dy) / 30, 1);
+});
+
+window.addEventListener('click', e => {
+  beatFlash = 1.0;
+  spawnBurst(e.clientX, e.clientY, 120, 3.5, hue);
+});
+
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  mouse.px = mouse.x; mouse.py = mouse.y;
+  mouse.x = t.clientX; mouse.y = t.clientY;
+  const dx = mouse.x - mouse.px, dy = mouse.y - mouse.py;
+  mouse.speed = Math.min(Math.sqrt(dx*dx+dy*dy) / 30, 1);
+}, {passive:false});
+
+window.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  beatFlash = 1.0;
+  spawnBurst(t.clientX, t.clientY, 120, 3.5, hue);
+});
+
+// Mode buttons
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    currentPalette = MODE_PALETTES[mode] || 'eudaimon';
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('uiMode').textContent = mode.replace('_',' ').toUpperCase();
+    document.getElementById('uiPalette').textContent = currentPalette.toUpperCase();
+    beatFlash = 0.6;
+    spawnBurst(mouse.x, mouse.y, 60, 2.5, hue);
+  });
+});
+
+// ─── Main Loop ───────────────────────────────────────────────────────────────
+
+function draw(ts) {
+  requestAnimationFrame(draw);
+  const t = ts * 0.001;
+  frame++;
+
+  // Fade trail
+  ctx.fillStyle = `rgba(0,0,0,${0.18 + beatFlash * 0.06})`;
+  ctx.fillRect(0, 0, W, H);
+
+  // LFO values
+  const breath  = lfoVal(lfos.breath,  t);
+  const pulse   = lfoVal(lfos.pulse,   t);
+  const shimmer = lfoVal(lfos.shimmer, t);
+  const orbit   = lfoVal(lfos.orbit,   t);
+
+  // Hue drift
+  hue = (hue + 0.0008) % 1;
+
+  // Energy
+  energy = energy * 0.92 + mouse.speed * 0.08;
+  beatFlash = Math.max(0, beatFlash - 0.025);
+
+  // Simulated 5-finger spread around mouse
+  const fingerAngles = [0, TAU/5, 2*TAU/5, 3*TAU/5, 4*TAU/5];
+  const spread = 18 + energy * 55 + breath * 12;
+
+  const fingerPos = fingerAngles.map((a, i) => ({
+    x: mouse.x + Math.cos(a + t * 0.4) * spread,
+    y: mouse.y + Math.sin(a + t * 0.4) * spread * 0.7,
+    hue: (hue + i * 0.2) % 1,
+  }));
+
+  // ── Constellation lines ─────────────────────────────────
+  if (mode === 'constellation' || mode === 'trail') {
+    for (let i=0; i<fingerPos.length; i++) {
+      for (let j=i+1; j<fingerPos.length; j++) {
+        const fp1 = fingerPos[i], fp2 = fingerPos[j];
+        const dist = Math.hypot(fp2.x-fp1.x, fp2.y-fp1.y);
+        const alpha = Math.max(0, 1 - dist/180) * (0.3 + shimmer*0.2);
+        const col = paletteColor(fp1.hue, currentPalette);
+        drawLine(fp1.x, fp1.y, fp2.x, fp2.y, col, alpha, 1);
+      }
+    }
+  }
+
+  // ── Sacred geometry ─────────────────────────────────────
+  if (mode !== 'trail' && mode !== 'burst') {
+    const geoScale = Math.min(W, H) * (0.42 + energy * 0.18 + breath * 0.05);
+    const geoX = cx + (mouse.x - cx) * 0.25;
+    const geoY = cy + (mouse.y - cy) * 0.25;
+    const rot  = t * 0.22 + orbit * TAU * 0.08;
+    const gpts = getGeometry(mode, geoScale);
+
+    ctx.save();
+    ctx.translate(geoX, geoY);
+    ctx.rotate(rot);
+
+    gpts.forEach((pt, idx) => {
+      const h   = (hue + idx * 0.07) % 1;
+      const col = paletteColor(h, currentPalette);
+      const puls = 1 + pulse * 0.12 + beatFlash * 0.25;
+      const r   = pt.r * puls;
+      const glR = r * (2.8 + energy * 1.5 + shimmer * 0.8);
+      drawGlowCircle(pt.x, pt.y, r, col, glR, 0.55 + pulse*0.2 + beatFlash*0.3);
+
+      // Inner sacred lines connecting to center (Metatron style)
+      if (mode === 'metatron' && idx > 0) {
+        const col2 = paletteColor((h+0.5)%1, currentPalette);
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(pt.x, pt.y);
+        ctx.strokeStyle = col2.replace('rgb(','rgba(').replace(')',`,${0.08 + shimmer*0.06})`);
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }
+    });
+
+    ctx.restore();
+  }
+
+  // ── Fingertip circles ───────────────────────────────────
+  fingerPos.forEach((fp, i) => {
+    // Update trail
+    trails[i].push({x: fp.x, y: fp.y, hue: fp.hue});
+    if (trails[i].length > TRAIL_LEN) trails[i].shift();
+
+    // Draw trail
+    if (mode !== 'burst') {
+      for (let k=1; k<trails[i].length; k++) {
+        const alpha = (k / trails[i].length) * 0.6;
+        const col   = paletteColor(trails[i][k].hue, currentPalette);
+        const prev  = trails[i][k-1];
+        const cur   = trails[i][k];
+        drawLine(prev.x, prev.y, cur.x, cur.y, col, alpha, 1.5 * (k/trails[i].length));
+      }
+    }
+
+    const col  = paletteColor(fp.hue, currentPalette);
+    const r    = 3 + energy * 8 + breath * 3;
+    const glR  = r * (3 + energy * 4 + shimmer * 1.5 + beatFlash * 3);
+    drawGlowCircle(fp.x, fp.y, r, col, glR, 0.8 + beatFlash * 0.2);
+
+    // Motion particles
+    if (mouse.speed > 0.08 && particles.length < MAX_P) {
+      const vx = (Math.random()-0.5)*mouse.speed*6;
+      const vy = (Math.random()-0.5)*mouse.speed*6;
+      particles.push({x:fp.x, y:fp.y, vx, vy, life:1, decay:0.025+Math.random()*0.02,
+        hue:fp.hue, size:1+Math.random()*2.5, spin:(Math.random()-0.5)*0.01});
+    }
+  });
+
+  // ── Aura ring ───────────────────────────────────────────
+  const auraR = spread * (1.8 + breath * 0.25);
+  const auraCol = paletteColor((hue+0.5)%1, currentPalette);
+  drawGlowCircle(mouse.x, mouse.y, auraR, auraCol, auraR*1.6, 0.12 + pulse*0.08);
+
+  // ── Burst mode ambient ──────────────────────────────────
+  if (mode === 'burst' && frame % 2 === 0 && particles.length < MAX_P) {
+    spawnBurst(mouse.x, mouse.y, 8, 1.5, hue);
+  }
+
+  // ── Particles ───────────────────────────────────────────
+  tickParticles();
+  particles.forEach(p => {
+    const col = paletteColor(p.hue, currentPalette);
+    const gl  = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size*3);
+    gl.addColorStop(0, col.replace('rgb(','rgba(').replace(')',`,${p.life})`));
+    gl.addColorStop(1, col.replace('rgb(','rgba(').replace(')',',0)'));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*3, 0, TAU);
+    ctx.fillStyle = gl;
+    ctx.fill();
+  });
+
+  // ── Beat flash vignette ─────────────────────────────────
+  if (beatFlash > 0.01) {
+    const grad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, Math.min(W,H)*0.8);
+    const col  = paletteColor(hue, currentPalette);
+    grad.addColorStop(0, col.replace('rgb(','rgba(').replace(')',`,${beatFlash*0.15})`));
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // ── Edge vignette ───────────────────────────────────────
+  const vig = ctx.createRadialGradient(cx, cy, Math.min(W,H)*0.35, cx, cy, Math.min(W,H)*0.9);
+  vig.addColorStop(0, 'rgba(0,0,0,0)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.72)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── UI update ───────────────────────────────────────────
+  if (frame % 6 === 0) {
+    document.getElementById('uiEnergy').textContent    = energy.toFixed(3);
+    document.getElementById('uiParticles').textContent = particles.length;
+  }
+}
+
+// ─── Start ───────────────────────────────────────────────────────────────────
+
+mouse.x = W/2; mouse.y = H/2;
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
