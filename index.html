@@ -13,37 +13,37 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 #bg    { position:fixed; inset:0; z-index:0; }
 #stage { position:fixed; inset:0; z-index:10; }
 
-/* ── Glass cards ── */
+/* ── Cards ── */
 .card {
   position:absolute; width:120px; height:168px;
   border-radius:12px;
-  background:rgba(255,252,240,0.062);
-  backdrop-filter:blur(24px) saturate(200%) brightness(1.06);
-  -webkit-backdrop-filter:blur(24px) saturate(200%) brightness(1.06);
-  border:0.7px solid rgba(255,255,255,0.17);
+  background:#04030c;
+  border:1px solid rgba(255,255,255,0.10);
   box-shadow:
-    0 6px 28px rgba(0,0,0,0.16),
-    inset 0 1px 0 rgba(255,255,255,0.20),
-    inset 0 -1px 0 rgba(0,0,0,0.06);
+    0 14px 44px rgba(0,0,0,0.70),
+    0 3px 10px rgba(0,0,0,0.50),
+    inset 0 1px 0 rgba(255,255,255,0.08);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   pointer-events:none; will-change:transform; overflow:hidden;
   transition:border-color .4s, box-shadow .45s;
 }
 .card::before {
   content:''; position:absolute; top:0; left:14px; right:14px; height:0.7px;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
-  pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.16), transparent);
+  pointer-events:none; z-index:5;
 }
-.card.divine  { border-color:rgba(255,210,70,0.30); background:rgba(255,248,200,0.06); box-shadow:0 6px 28px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.20),0 0 18px rgba(255,200,60,0.06); }
-.card.divine::before { background:linear-gradient(90deg, transparent, rgba(255,205,70,0.52), transparent); }
-.card.forest  { border-color:rgba(80,195,100,0.28); background:rgba(210,255,210,0.05); box-shadow:0 6px 28px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.20),0 0 18px rgba(80,200,95,0.06); }
-.card.forest::before { background:linear-gradient(90deg, transparent, rgba(90,200,105,0.44), transparent); }
-.card.garden  { border-color:rgba(215,75,255,0.26); background:rgba(245,220,255,0.05); box-shadow:0 6px 28px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.20),0 0 18px rgba(210,70,255,0.06); }
-.card.garden::before { background:linear-gradient(90deg, transparent, rgba(210,80,255,0.40), transparent); }
-.card.core    { border-color:rgba(110,160,255,0.24); background:rgba(220,230,255,0.05); box-shadow:0 6px 28px rgba(0,0,0,0.16),inset 0 1px 0 rgba(255,255,255,0.20),0 0 18px rgba(100,150,255,0.05); }
-.card.core::before { background:linear-gradient(90deg, transparent, rgba(110,165,255,0.38), transparent); }
+.card.divine  { border-color:rgba(255,200,60,0.28); }
+.card.divine::before { background:linear-gradient(90deg, transparent, rgba(255,200,60,0.45), transparent); }
+.card.forest  { border-color:rgba(80,195,100,0.24); }
+.card.forest::before { background:linear-gradient(90deg, transparent, rgba(90,200,105,0.38), transparent); }
+.card.garden  { border-color:rgba(215,75,255,0.24); }
+.card.garden::before { background:linear-gradient(90deg, transparent, rgba(210,80,255,0.38), transparent); }
+.card.core    { border-color:rgba(110,160,255,0.22); }
+.card.core::before { background:linear-gradient(90deg, transparent, rgba(110,165,255,0.35), transparent); }
 
-.card-art { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+.card-art { position:absolute; inset:0; }
+.card-art svg { width:100%; height:100%; display:block; }
+
 .card-content {
   position:relative; z-index:2;
   display:flex; flex-direction:column; align-items:center; justify-content:center; gap:7px;
@@ -52,23 +52,23 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 .card-label {
   position:absolute; bottom:10px; left:0; right:0; text-align:center;
   font-family:'Courier New',monospace; font-size:5.8px; letter-spacing:.26em;
-  color:rgba(255,255,255,0.30); text-transform:uppercase; z-index:3;
-  text-shadow:0 1px 3px rgba(0,0,0,0.4);
+  color:rgba(255,255,255,0.38); text-transform:uppercase; z-index:3;
+  text-shadow:0 1px 4px rgba(0,0,0,0.8);
 }
 .card-index {
   position:absolute; top:9px; left:10px; z-index:3;
   font-family:'Courier New',monospace; font-size:5.8px; letter-spacing:.10em;
-  color:rgba(255,255,255,0.15);
+  color:rgba(255,255,255,0.18);
 }
 .card-tag {
   position:absolute; top:9px; right:10px; z-index:3;
   font-family:'Courier New',monospace; font-size:5.2px; letter-spacing:.12em;
-  color:rgba(255,255,255,0.12);
+  color:rgba(255,255,255,0.14);
 }
 .card-text {
-  color:rgba(255,255,255,0.80); font-size:9px; line-height:1.62;
+  color:rgba(255,255,255,0.82); font-size:9px; line-height:1.62;
   text-align:center; letter-spacing:.03em;
-  text-shadow:0 1px 5px rgba(0,0,0,0.5);
+  text-shadow:0 1px 5px rgba(0,0,0,0.8);
 }
 .card-text.serif { font-style:italic; font-size:8.5px; }
 .card-text.mono  { font-family:'Courier New',monospace; font-size:7px; letter-spacing:.09em; }
@@ -80,7 +80,7 @@ body { background:#3d5c28; overflow:hidden; font-family:'Georgia',serif; cursor:
 #cam-canvas { position:absolute; width:100%; height:100%; transform:scaleX(-1); }
 #cam-label  { position:absolute; bottom:7px; left:9px; font-family:'Courier New',monospace; font-size:7px; letter-spacing:.14em; color:rgba(255,255,255,0.45); }
 
-/* ── Gesture glyph (replaces cursor) ── */
+/* ── Gesture glyph ── */
 #gest-glyph {
   position:fixed; pointer-events:none; z-index:150;
   bottom:172px; right:22px; width:186px;
@@ -293,123 +293,157 @@ function drawGarden(t) {
   bgCtx.fillStyle=vig; bgCtx.fillRect(0,0,W,H);
 }
 
-// ─── SVG helpers ─────────────────────────────────────────────────────────────
-
-const cos = (a) => Math.cos(a).toFixed(2);
-const sin = (a) => Math.sin(a).toFixed(2);
-
-function S(vb, w, h, stroke, body, sw='0.8') {
-  return `<svg viewBox="${vb}" width="${w}" height="${h}" fill="none" stroke="${stroke}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
-}
-
-// ─── Card definitions (12 cards, each unique color + art) ─────────────────────
+// ─── Card definitions (12 cards, fully illustrated) ──────────────────────────
 
 const CARDS = [
 
-  // ═══ DIVINE — warm gold ════════════════════════════════════════════════════
-
+  // 1. Eye of Providence
   { cat:'divine', label:'Eye of Providence',
-    art: (() => {
-      const C='rgba(255,196,55,0.82)', CF='rgba(255,210,80,';
-      const rays=[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>{
-        const a=i*TAU/12, d=62+((i%3===0)?4:0);
-        return `<line x1="${(Math.cos(a)*46).toFixed(1)}" y1="${(Math.sin(a)*46-2).toFixed(1)}" x2="${(Math.cos(a)*d).toFixed(1)}" y2="${(Math.sin(a)*d-2).toFixed(1)}" opacity="${i%3===0?'.45':'.22'}"/>`;
-      }).join('');
-      return S('-56 -60 112 112', 84, 90, C, `
-        <circle cx="0" cy="-2" r="48" opacity=".09"/>
-        <polygon points="0,-54 -46,34 46,34" stroke-width="0.9" opacity=".85"/>
-        <line x1="-46" y1="34" x2="46" y2="34" opacity=".28"/>
-        <path d="M -18,8 Q 0,-8 18,8 Q 0,24 -18,8 Z" opacity=".78"/>
-        <circle cx="0" cy="8" r="6" fill="${CF}0.42)" stroke="none"/>
-        <circle cx="0" cy="8" r="2.8" fill="${CF}0.80)" stroke="none"/>
-        <circle cx="2.5" cy="6" r="1.8" fill="rgba(255,255,255,0.65)" stroke="none"/>
-        ${rays}
-        <circle cx="0" cy="-2" r="48" opacity=".06"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ep-bg" cx="50%" cy="38%" r="80%"><stop offset="0%" stop-color="#2d1200"/><stop offset="100%" stop-color="#080400"/></radialGradient>
+    <radialGradient id="ep-halo" cx="50%" cy="38%" r="62%"><stop offset="0%" stop-color="#ff9900" stop-opacity=".40"/><stop offset="100%" stop-color="#ff4400" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ep-iris" cx="35%" cy="30%" r="62%"><stop offset="0%" stop-color="#fff5c0"/><stop offset="42%" stop-color="#ffaa00"/><stop offset="100%" stop-color="#c04000"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#ep-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#ep-halo)"/>
+  <polygon points="60,20 13,112 107,112" fill="rgba(255,155,30,.13)" stroke="rgba(255,185,55,.68)" stroke-width="1.1" stroke-linejoin="round"/>
+  <line x1="13" y1="112" x2="107" y2="112" stroke="rgba(255,195,65,.32)" stroke-width=".8"/>
+  ${Array.from({length:20},(_,i)=>{const a=(i/20)*Math.PI*2-Math.PI/2,r1=30,r2=56+(i%4===0?10:i%2===0?5:2),op=i%4===0?.55:i%2===0?.32:.18,sw=i%4===0?1.1:.5;return`<line x1="${(60+Math.cos(a)*r1).toFixed(1)}" y1="${(66+Math.sin(a)*r1).toFixed(1)}" x2="${(60+Math.cos(a)*r2).toFixed(1)}" y2="${(66+Math.sin(a)*r2).toFixed(1)}" stroke="rgba(255,175,50,${op})" stroke-width="${sw}"/>`;}).join('')}
+  <ellipse cx="60" cy="66" rx="24" ry="14" fill="rgba(255,248,215,.92)"/>
+  <circle cx="60" cy="66" r="14" fill="url(#ep-iris)"/>
+  <circle cx="60" cy="66" r="14" fill="none" stroke="rgba(170,70,10,.40)" stroke-width="2.2"/>
+  <circle cx="60" cy="66" r="9" fill="none" stroke="rgba(110,40,5,.30)" stroke-width="1.3"/>
+  <circle cx="60" cy="66" r="5.5" fill="#030100"/>
+  <circle cx="57" cy="63" r="2.5" fill="rgba(255,255,255,.74)"/>
+  <path d="M 36,66 Q 60,52 84,66" fill="none" stroke="rgba(200,130,40,.52)" stroke-width=".9"/>
+  <path d="M 36,66 Q 60,80 84,66" fill="none" stroke="rgba(200,130,40,.52)" stroke-width=".9"/>
+  <circle cx="60" cy="112" r="3" fill="rgba(255,165,45,.50)"/>
+  <circle cx="13" cy="112" r="2.2" fill="rgba(255,165,45,.38)"/>
+  <circle cx="107" cy="112" r="2.2" fill="rgba(255,165,45,.38)"/>
+</svg>`
   },
 
+  // 2. Merkaba
   { cat:'divine', label:'Merkaba',
-    art: (() => {
-      const C='rgba(100,210,255,0.78)', CF='rgba(120,220,255,';
-      const hex6=Array.from({length:6},(_,i)=>{const a=i*TAU/6;return`${(Math.cos(a)*46).toFixed(1)},${(Math.sin(a)*46).toFixed(1)}`;}).join(' ');
-      return S('-52 -52 104 104', 84, 84, C, `
-        <polygon points="0,-48 -41.6,24 41.6,24" stroke-width="1.0" opacity=".82"/>
-        <polygon points="0,48 -41.6,-24 41.6,-24" stroke-width="1.0" opacity=".82"/>
-        <polygon points="${hex6}" opacity=".22"/>
-        <circle cx="0" cy="0" r="48" opacity=".07"/>
-        <circle cx="0" cy="0" r="18" opacity=".14"/>
-        ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`<circle cx="${(Math.cos(a)*46).toFixed(1)}" cy="${(Math.sin(a)*46).toFixed(1)}" r="2.8" fill="${CF}0.60)" stroke="none"/>`;}).join('')}
-        <circle cx="0" cy="0" r="5.5" fill="${CF}0.26)" stroke="none"/>
-        <line x1="0" y1="-48" x2="0" y2="48" opacity=".08"/>
-        <line x1="-41.6" y1="-24" x2="41.6" y2="24" opacity=".08"/>
-        <line x1="41.6" y1="-24" x2="-41.6" y2="24" opacity=".08"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="mk-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#04101e"/><stop offset="100%" stop-color="#01030a"/></radialGradient>
+    <radialGradient id="mk-ctr" cx="50%" cy="50%" r="52%"><stop offset="0%" stop-color="#00ccff" stop-opacity=".28"/><stop offset="100%" stop-color="#0033cc" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#mk-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#mk-ctr)"/>
+  <circle cx="9" cy="14" r=".8" fill="rgba(200,230,255,.45)"/>
+  <circle cx="24" cy="8" r="1.0" fill="rgba(200,230,255,.55)"/>
+  <circle cx="47" cy="4" r=".7" fill="rgba(200,230,255,.35)"/>
+  <circle cx="80" cy="11" r="1.1" fill="rgba(200,230,255,.62)"/>
+  <circle cx="99" cy="7" r=".8" fill="rgba(200,230,255,.42)"/>
+  <circle cx="113" cy="21" r=".9" fill="rgba(200,230,255,.50)"/>
+  <circle cx="116" cy="42" r=".7" fill="rgba(200,230,255,.36)"/>
+  <circle cx="4" cy="30" r=".9" fill="rgba(200,230,255,.48)"/>
+  <circle cx="3" cy="58" r=".8" fill="rgba(200,230,255,.40)"/>
+  <circle cx="7" cy="85" r="1.0" fill="rgba(200,230,255,.55)"/>
+  <circle cx="5" cy="110" r=".7" fill="rgba(200,230,255,.34)"/>
+  <circle cx="112" cy="78" r=".9" fill="rgba(200,230,255,.46)"/>
+  <circle cx="115" cy="102" r=".8" fill="rgba(200,230,255,.42)"/>
+  <circle cx="110" cy="128" r=".9" fill="rgba(200,230,255,.50)"/>
+  <circle cx="72" cy="161" r="1.0" fill="rgba(200,230,255,.55)"/>
+  <circle cx="42" cy="160" r=".8" fill="rgba(200,230,255,.40)"/>
+  <circle cx="18" cy="154" r=".9" fill="rgba(200,230,255,.46)"/>
+  <circle cx="35" cy="45" r=".6" fill="rgba(200,230,255,.28)"/>
+  <circle cx="88" cy="38" r=".7" fill="rgba(200,230,255,.34)"/>
+  <circle cx="95" cy="130" r=".6" fill="rgba(200,230,255,.30)"/>
+  <polygon points="60,22 107,95 13,95" fill="rgba(0,180,255,.10)" stroke="rgba(60,200,255,.78)" stroke-width="1.2" stroke-linejoin="round"/>
+  <polygon points="60,148 13,75 107,75" fill="rgba(0,60,200,.10)" stroke="rgba(40,155,255,.78)" stroke-width="1.2" stroke-linejoin="round"/>
+  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3-Math.PI/6,r=34;return`<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(85+Math.sin(a)*r).toFixed(1)}" r="3.0" fill="rgba(80,215,255,.58)"/>`;}).join('')}
+  <circle cx="60" cy="85" r="13" fill="rgba(0,160,255,.12)" stroke="rgba(80,210,255,.32)" stroke-width=".9"/>
+  <circle cx="60" cy="85" r="5.5" fill="rgba(100,225,255,.38)"/>
+  <circle cx="60" cy="85" r="2.8" fill="rgba(220,248,255,.78)"/>
+</svg>`
   },
 
+  // 3. Vesica Piscis
   { cat:'divine', label:'Vesica Piscis',
-    art: (() => {
-      const C='rgba(190,90,255,0.76)', CF='rgba(200,110,255,';
-      return S('-60 -46 120 92', 88, 76, C, `
-        <circle cx="-19" cy="0" r="37" opacity=".42"/>
-        <circle cx="19" cy="0" r="37" opacity=".42"/>
-        <path d="M 0,-32 A 37,37 0 0 0 0,32 A 37,37 0 0 0 0,-32 Z" stroke-width="1.1" opacity=".80"/>
-        <line x1="0" y1="-32" x2="0" y2="32" opacity=".55"/>
-        <line x1="-56" y1="0" x2="56" y2="0" opacity=".14"/>
-        <line x1="-19" y1="-32" x2="19" y2="-32" opacity=".26"/>
-        <line x1="-19" y1="32" x2="19" y2="32" opacity=".26"/>
-        <circle cx="0" cy="0" r="4" fill="${CF}0.50)" stroke="none"/>
-        <circle cx="0" cy="-32" r="2.5" fill="${CF}0.44)" stroke="none"/>
-        <circle cx="0" cy="32" r="2.5" fill="${CF}0.44)" stroke="none"/>
-        <circle cx="-19" cy="0" r="2" fill="${CF}0.32)" stroke="none"/>
-        <circle cx="19" cy="0" r="2" fill="${CF}0.32)" stroke="none"/>
-        ${[0,1,2,3].map(i=>{const a=i*TAU/4;return`<circle cx="${(Math.cos(a)*10).toFixed(1)}" cy="${(Math.sin(a)*10).toFixed(1)}" r="1.2" fill="${CF}0.22)" stroke="none"/>`;}).join('')}
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="vp-bg" cx="50%" cy="50%" r="72%"><stop offset="0%" stop-color="#100028"/><stop offset="100%" stop-color="#050010"/></radialGradient>
+    <radialGradient id="vp-gl" cx="50%" cy="50%" r="56%"><stop offset="0%" stop-color="#cc44ff" stop-opacity=".28"/><stop offset="100%" stop-color="#6600aa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="vp-lens" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#ee88ff" stop-opacity=".55"/><stop offset="100%" stop-color="#9920cc" stop-opacity=".35"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#vp-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#vp-gl)"/>
+  <circle cx="46" cy="84" r="44" fill="rgba(180,60,255,.09)" stroke="rgba(190,80,255,.50)" stroke-width=".9"/>
+  <circle cx="74" cy="84" r="44" fill="rgba(130,40,220,.09)" stroke="rgba(170,60,255,.50)" stroke-width=".9"/>
+  <path d="M 60,42 A 44,44 0 0 1 60,126 A 44,44 0 0 1 60,42 Z" fill="url(#vp-lens)" stroke="rgba(220,110,255,.80)" stroke-width="1.2"/>
+  <line x1="60" y1="38" x2="60" y2="130" stroke="rgba(220,120,255,.38)" stroke-width=".7"/>
+  <line x1="2" y1="84" x2="118" y2="84" stroke="rgba(180,80,255,.16)" stroke-width=".6"/>
+  <line x1="46" y1="42" x2="74" y2="42" stroke="rgba(200,100,255,.22)" stroke-width=".6"/>
+  <line x1="46" y1="126" x2="74" y2="126" stroke="rgba(200,100,255,.22)" stroke-width=".6"/>
+  <circle cx="60" cy="42" r="3.2" fill="rgba(235,135,255,.68)"/>
+  <circle cx="60" cy="126" r="3.2" fill="rgba(235,135,255,.68)"/>
+  <circle cx="46" cy="84" r="2.4" fill="rgba(205,105,255,.48)"/>
+  <circle cx="74" cy="84" r="2.4" fill="rgba(205,105,255,.48)"/>
+  <circle cx="60" cy="84" r="5" fill="rgba(240,155,255,.35)" stroke="rgba(245,165,255,.55)" stroke-width=".8"/>
+  <circle cx="60" cy="84" r="2.2" fill="rgba(255,210,255,.72)"/>
+  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return`<line x1="${(46+Math.cos(a)*44).toFixed(1)}" y1="${(84+Math.sin(a)*44).toFixed(1)}" x2="${(74+Math.cos(a)*44).toFixed(1)}" y2="${(84+Math.sin(a)*44).toFixed(1)}" stroke="rgba(200,100,255,.08)" stroke-width=".5"/>`;}).join('')}
+</svg>`
   },
 
+  // 4. Caduceus
   { cat:'divine', label:'Caduceus',
-    art: (() => {
-      const C='rgba(60,220,170,0.78)', CF='rgba(80,230,180,';
-      return S('-36 -64 72 114', 66, 96, C, `
-        <line x1="0" y1="-60" x2="0" y2="46" stroke-width="1.1"/>
-        <circle cx="0" cy="-56" r="6" opacity=".88"/>
-        <circle cx="0" cy="-56" r="2.8" fill="${CF}0.48)" stroke="none"/>
-        <path d="M 0,-52 Q -24,-48 -24,-34 Q -24,-18 0,-10 Q 24,-2 24,12 Q 24,26 0,32" stroke-width="0.9" opacity=".82"/>
-        <path d="M 0,-52 Q 24,-48 24,-34 Q 24,-18 0,-10 Q -24,-2 -24,12 Q -24,26 0,32" stroke-width="0.9" opacity=".82"/>
-        <path d="M 0,-52 Q -28,-56 -30,-45 Q -28,-35 0,-35" stroke-width="0.85" opacity=".78"/>
-        <path d="M 0,-52 Q 28,-56 30,-45 Q 28,-35 0,-35" stroke-width="0.85" opacity=".78"/>
-        ${[[-24,-34],[24,-34],[0,-10],[24,12],[-24,12],[0,32]].map(([px,py])=>`<circle cx="${px}" cy="${py}" r="2.2" fill="${CF}0.36)" stroke="none"/>`).join('')}
-        <line x1="-20" y1="46" x2="20" y2="46" opacity=".30"/>
-        <circle cx="0" cy="46" r="1.8" fill="${CF}0.25)" stroke="none"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="cd-bg" cx="50%" cy="35%" r="80%"><stop offset="0%" stop-color="#001a14"/><stop offset="100%" stop-color="#000a08"/></radialGradient>
+    <radialGradient id="cd-gl" cx="50%" cy="18%" r="60%"><stop offset="0%" stop-color="#00ffaa" stop-opacity=".22"/><stop offset="100%" stop-color="#00aa66" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#cd-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#cd-gl)"/>
+  <line x1="60" y1="18" x2="60" y2="150" stroke="rgba(80,220,170,.65)" stroke-width="2.0" stroke-linecap="round"/>
+  <path d="M 60,40 Q 40,44 38,58 Q 36,72 60,78 Q 84,84 82,98 Q 80,112 60,118 Q 40,124 38,136 Q 36,146 60,150" fill="none" stroke="rgba(60,200,140,.80)" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M 60,40 Q 80,44 82,58 Q 84,72 60,78 Q 36,84 38,98 Q 40,112 60,118 Q 80,124 82,136 Q 84,146 60,150" fill="none" stroke="rgba(40,170,120,.80)" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M 60,40 Q 38,36 34,46 Q 32,56 60,56" fill="none" stroke="rgba(60,200,140,.72)" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M 60,40 Q 82,36 86,46 Q 88,56 60,56" fill="none" stroke="rgba(40,170,120,.72)" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M 46,40 Q 38,28 48,22 Q 58,16 60,24" fill="none" stroke="rgba(80,210,160,.60)" stroke-width="1.0" stroke-linecap="round"/>
+  <path d="M 74,40 Q 82,28 72,22 Q 62,16 60,24" fill="none" stroke="rgba(60,180,140,.60)" stroke-width="1.0" stroke-linecap="round"/>
+  <circle cx="60" cy="18" r="8" fill="rgba(40,200,150,.30)" stroke="rgba(80,230,180,.72)" stroke-width="1.1"/>
+  <circle cx="60" cy="18" r="4.5" fill="rgba(140,255,210,.65)"/>
+  <circle cx="60" cy="18" r="2" fill="rgba(220,255,240,.85)"/>
+  <circle cx="60" cy="78" r="4.5" fill="rgba(60,200,150,.22)" stroke="rgba(80,220,170,.50)" stroke-width=".8"/>
+  <circle cx="60" cy="118" r="4.5" fill="rgba(60,200,150,.22)" stroke="rgba(80,220,170,.50)" stroke-width=".8"/>
+  <line x1="46" y1="150" x2="74" y2="150" stroke="rgba(80,200,160,.30)" stroke-width=".9"/>
+</svg>`
   },
 
-  // ═══ FOREST — each its own palette ════════════════════════════════════════
-
+  // 5. Banyan
   { cat:'forest', label:'Banyan',
-    art: (() => {
-      const C='rgba(80,200,95,0.74)', CF='rgba(100,215,110,';
-      return S('-60 -48 120 104', 90, 86, C, `
-        <path d="M -54,6 Q -58,-16 -46,-26 Q -34,-38 -20,-30 Q -10,-40 0,-28 Q 10,-40 20,-30 Q 34,-38 46,-26 Q 58,-16 54,6 Z" stroke-width="0.9" opacity=".80"/>
-        <path d="M -38,6 Q -40,-12 -30,-20 Q -18,-28 -8,-20 Q 0,-26 8,-20 Q 18,-28 30,-20 Q 40,-12 38,6 Z" opacity=".44"/>
-        <line x1="0" y1="52" x2="0" y2="6" stroke-width="1.1"/>
-        ${[-48,-36,-22,22,36,48].map((x,i)=>`<line x1="${x}" y1="52" x2="${x}" y2="${i<3?20:20}" opacity="${i===0||i===5?'.52':'.68'}"/>`).join('')}
-        <line x1="-60" y1="52" x2="60" y2="52" opacity=".16"/>
-        ${[-48,-36,-22,0,22,36,48].map(x=>`<ellipse cx="${x}" cy="52" rx="3" ry="1.8" fill="${CF}0.30)" stroke="none"/>`).join('')}
-        <path d="M -20,6 Q -28,18 -28,28" opacity=".35"/>
-        <path d="M 20,6 Q 28,18 28,28" opacity=".35"/>
-        <path d="M 0,6 Q 0,22 -10,36" opacity=".28"/>
-        <path d="M 0,6 Q 0,22 10,36" opacity=".28"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bn-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#060e08"/><stop offset="100%" stop-color="#020806"/></linearGradient>
+    <radialGradient id="bn-moon" cx="50%" cy="20%" r="30%"><stop offset="0%" stop-color="#ccffd8" stop-opacity=".45"/><stop offset="100%" stop-color="#60cc80" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#bn-sky)"/>
+  <rect width="120" height="168" rx="12" fill="url(#bn-moon)"/>
+  <rect x="0" y="130" width="120" height="38" rx="0" fill="rgba(8,38,10,.75)"/>
+  <circle cx="60" cy="30" r="18" fill="rgba(200,255,210,.18)" stroke="rgba(180,255,200,.32)" stroke-width=".8"/>
+  <circle cx="60" cy="30" r="12" fill="rgba(200,255,210,.12)"/>
+  <rect x="54" y="82" width="12" height="52" rx="5" fill="rgba(18,55,14,.88)"/>
+  <path d="M 6,82 Q 8,52 22,42 Q 38,32 55,40 Q 62,36 68,40 Q 82,32 98,42 Q 112,52 114,82 Z" fill="rgba(18,72,20,.88)" stroke="rgba(36,105,38,.55)" stroke-width=".8"/>
+  <path d="M 16,82 Q 18,60 30,52 Q 46,44 60,50 Q 74,44 90,52 Q 102,60 104,82 Z" fill="rgba(26,88,28,.82)" stroke="rgba(48,122,50,.48)" stroke-width=".7"/>
+  <path d="M 24,82 Q 26,66 36,60 Q 50,54 60,58 Q 70,54 84,60 Q 94,66 96,82 Z" fill="rgba(34,104,36,.76)" stroke="rgba(60,140,62,.42)" stroke-width=".6"/>
+  <line x1="14" y1="130" x2="14" y2="84" stroke="rgba(18,55,14,.60)" stroke-width="1.2"/>
+  <line x1="26" y1="130" x2="26" y2="80" stroke="rgba(18,55,14,.65)" stroke-width="1.0"/>
+  <line x1="40" y1="130" x2="40" y2="75" stroke="rgba(18,55,14,.70)" stroke-width="1.2"/>
+  <line x1="80" y1="130" x2="80" y2="75" stroke="rgba(18,55,14,.70)" stroke-width="1.2"/>
+  <line x1="94" y1="130" x2="94" y2="80" stroke="rgba(18,55,14,.65)" stroke-width="1.0"/>
+  <line x1="106" y1="130" x2="106" y2="84" stroke="rgba(18,55,14,.60)" stroke-width="1.2"/>
+  ${Array.from({length:8},(_,i)=>{const x=10+i*14,y=52+Math.sin(i*1.4)*7;return`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" transform="rotate(${i*14-25} ${x} ${y})" fill="rgba(48,140,52,.58)"/>`;}).join('')}
+  <ellipse cx="60" cy="132" rx="52" ry="7" fill="rgba(22,65,18,.55)"/>
+</svg>`
   },
 
+  // 6. Mycelium
   { cat:'forest', label:'Mycelium',
     art: (() => {
-      const C='rgba(150,100,255,0.72)', CF='rgba(170,120,255,';
       const N=[
         [0,0],[-30,-22],[24,-26],[-10,28],[32,14],
         [-36,4],[40,-8],[-22,38],[12,-42],[-26,-42],
@@ -417,154 +451,219 @@ const CARDS = [
         [44,12],[-40,-16],[6,18],[-6,-28],[36,-26]
       ];
       const HUB=new Set([0,5,7,10,8,11]);
-      const THR=32;
+      const THR=34;
       let lines='', dots='';
       for(let i=0;i<N.length;i++){
         for(let j=i+1;j<N.length;j++){
           const d=Math.hypot(N[i][0]-N[j][0],N[i][1]-N[j][1]);
           if(d<THR){
-            const op=(0.20+(1-d/THR)*0.45).toFixed(2);
-            lines+=`<line x1="${N[i][0]}" y1="${N[i][1]}" x2="${N[j][0]}" y2="${N[j][1]}" opacity="${op}" stroke-width="0.55"/>`;
+            const op=(0.18+(1-d/THR)*0.48).toFixed(2);
+            lines+=`<line x1="${N[i][0]+60}" y1="${N[i][1]+84}" x2="${N[j][0]+60}" y2="${N[j][1]+84}" stroke="rgba(155,100,255,${op})" stroke-width="0.6"/>`;
           }
         }
-        const r=HUB.has(i)?4.2:1.9, op=HUB.has(i)?'0.70':'0.40';
-        dots+=`<circle cx="${N[i][0]}" cy="${N[i][1]}" r="${r}" fill="${CF}${op})" stroke="none"/>`;
-        if(HUB.has(i)) dots+=`<circle cx="${N[i][0]}" cy="${N[i][1]}" r="${r+2.5}" stroke="${CF}0.18)" stroke-width="0.6" fill="none"/>`;
       }
-      return S('-50 -48 100 96',82,80,C,lines+dots);
+      for(let i=0;i<N.length;i++){
+        const isH=HUB.has(i);
+        const r=isH?5.0:2.0, fc=isH?'rgba(200,150,255,0.72)':'rgba(165,115,255,0.40)';
+        dots+=`<circle cx="${N[i][0]+60}" cy="${N[i][1]+84}" r="${r}" fill="${fc}"/>`;
+        if(isH) dots+=`<circle cx="${N[i][0]+60}" cy="${N[i][1]+84}" r="${r+6}" stroke="rgba(180,130,255,0.16)" stroke-width="0.8" fill="none"/>`;
+      }
+      return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="my-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#070318"/><stop offset="100%" stop-color="#020108"/></radialGradient>
+    <radialGradient id="my-glow" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#5818cc" stop-opacity=".30"/><stop offset="100%" stop-color="#1a0060" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#my-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#my-glow)"/>
+  ${lines}${dots}
+</svg>`;
     })()
   },
 
+  // 7. Owl
   { cat:'forest', label:'Owl',
-    art: (() => {
-      const C='rgba(255,158,48,0.78)', CF='rgba(255,168,60,';
-      return S('-46 -60 92 108', 78, 92, C, `
-        <circle cx="0" cy="-18" r="27" stroke-width="0.9" opacity=".86"/>
-        <polygon points="0,52 -34,-4 34,-4" stroke-width="0.85" opacity=".76"/>
-        <polygon points="-19,-44 -28,-28 -10,-28" opacity=".82"/>
-        <polygon points="19,-44 28,-28 10,-28" opacity=".82"/>
-        <circle cx="-10" cy="-19" r="11" stroke-width="1.0" opacity=".92"/>
-        <circle cx="10"  cy="-19" r="11" stroke-width="1.0" opacity=".92"/>
-        <circle cx="-10" cy="-19" r="6" fill="${CF}0.38)" stroke="none"/>
-        <circle cx="10"  cy="-19" r="6" fill="${CF}0.38)" stroke="none"/>
-        <circle cx="-7.5" cy="-21.5" r="2.8" fill="rgba(255,255,255,0.60)" stroke="none"/>
-        <circle cx="12.5" cy="-21.5" r="2.8" fill="rgba(255,255,255,0.60)" stroke="none"/>
-        <polygon points="0,-13 -4.5,-6.5 4.5,-6.5" opacity=".74"/>
-        <path d="M -34,-4 Q -42,12 -38,30" opacity=".32" stroke-width="0.7"/>
-        <path d="M 34,-4 Q 42,12 38,30" opacity=".32" stroke-width="0.7"/>
-        ${[-20,-10,0,10,20].map(x=>`<path d="M ${x},-3 Q ${x+2},7 ${(x*1.15).toFixed(0)},13" opacity=".24" stroke-width="0.65"/>`).join('')}
-        <path d="M -10,-40 Q 0,-46 10,-40" opacity=".30" stroke-width="0.65"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ow-bg" cx="50%" cy="42%" r="76%"><stop offset="0%" stop-color="#1c0900"/><stop offset="100%" stop-color="#080400"/></radialGradient>
+    <radialGradient id="ow-moon" cx="50%" cy="18%" r="26%"><stop offset="0%" stop-color="#fff5d0" stop-opacity=".55"/><stop offset="100%" stop-color="#ffcc60" stop-opacity="0"/></radialGradient>
+    <radialGradient id="ow-el" cx="36%" cy="32%" r="58%"><stop offset="0%" stop-color="#ffe070"/><stop offset="52%" stop-color="#ff9800"/><stop offset="100%" stop-color="#c04800"/></radialGradient>
+    <radialGradient id="ow-er" cx="36%" cy="32%" r="58%"><stop offset="0%" stop-color="#ffe070"/><stop offset="52%" stop-color="#ff9800"/><stop offset="100%" stop-color="#c04800"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#ow-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#ow-moon)"/>
+  <circle cx="60" cy="28" r="20" fill="rgba(255,245,215,.20)" stroke="rgba(255,230,160,.28)" stroke-width=".8"/>
+  <circle cx="60" cy="28" r="13" fill="rgba(255,245,215,.12)"/>
+  <ellipse cx="60" cy="120" rx="24" ry="30" fill="rgba(42,18,5,.86)" stroke="rgba(140,75,18,.40)" stroke-width=".9"/>
+  <circle cx="60" cy="78" r="30" fill="rgba(46,20,6,.88)" stroke="rgba(150,80,20,.40)" stroke-width=".9"/>
+  <polygon points="46,50 41,34 53,48" fill="rgba(46,20,6,.92)" stroke="rgba(150,80,20,.48)" stroke-width=".8"/>
+  <polygon points="74,50 79,34 67,48" fill="rgba(46,20,6,.92)" stroke="rgba(150,80,20,.48)" stroke-width=".8"/>
+  <ellipse cx="60" cy="80" rx="23" ry="21" fill="rgba(68,30,9,.58)" stroke="rgba(168,95,28,.36)" stroke-width=".7"/>
+  <circle cx="48" cy="76" r="13" fill="url(#ow-el)" stroke="rgba(210,125,28,.58)" stroke-width="1.2"/>
+  <circle cx="48" cy="76" r="7.5" fill="rgba(180,88,10,.38)"/>
+  <circle cx="48" cy="76" r="5.5" fill="#060200"/>
+  <circle cx="45.5" cy="73.5" r="2.5" fill="rgba(255,255,255,.70)"/>
+  <circle cx="72" cy="76" r="13" fill="url(#ow-er)" stroke="rgba(210,125,28,.58)" stroke-width="1.2"/>
+  <circle cx="72" cy="76" r="7.5" fill="rgba(180,88,10,.38)"/>
+  <circle cx="72" cy="76" r="5.5" fill="#060200"/>
+  <circle cx="69.5" cy="73.5" r="2.5" fill="rgba(255,255,255,.70)"/>
+  <polygon points="60,83 55.5,91 64.5,91" fill="rgba(185,115,30,.72)"/>
+  ${Array.from({length:8},(_,i)=>{const y=104+i*7,xo=i%2?2:-2;return`<path d="M ${58+xo-12},${y} Q ${60+xo},${y-3} ${58+xo+12},${y}" fill="none" stroke="rgba(120,58,14,.24)" stroke-width=".7"/>`;}).join('')}
+  <rect x="8" y="142" width="104" height="9" rx="4.5" fill="rgba(28,12,3,.88)" stroke="rgba(100,52,16,.38)" stroke-width=".8"/>
+  <path d="M 46,142 Q 42,150 38,154 M 46,142 Q 46,152 44,156 M 46,142 Q 52,152 54,156" fill="none" stroke="rgba(80,38,9,.55)" stroke-width="1.0" stroke-linecap="round"/>
+  <path d="M 74,142 Q 70,150 66,154 M 74,142 Q 74,152 76,156 M 74,142 Q 78,150 82,154" fill="none" stroke="rgba(80,38,9,.55)" stroke-width="1.0" stroke-linecap="round"/>
+</svg>`
   },
 
+  // 8. Golden Spiral
   { cat:'forest', label:'Golden Spiral',
     art: (() => {
-      const C='rgba(255,130,90,0.76)', CF='rgba(255,140,100,';
       const phi=1.6180339887;
       const pts=[];
-      for(let t=0;t<=Math.PI*3.4;t+=0.06){
-        const r=2.4*Math.pow(phi,2*t/Math.PI);
-        pts.push([+(Math.cos(t+Math.PI)*r).toFixed(1),+(Math.sin(t+Math.PI)*r).toFixed(1)]);
+      for(let t=0;t<=Math.PI*3.2;t+=0.05){
+        const r=1.85*Math.pow(phi,2*t/Math.PI);
+        pts.push([+(60+Math.cos(t+Math.PI)*r).toFixed(1),+(84+Math.sin(t+Math.PI)*r).toFixed(1)]);
       }
-      const sqPts=[[0,0],[22,0],[22,-22],[0,-22]];
-      const sq2=[[0,0],[22,0],[22,14],[0,14]];
-      const markers=[0,1,2,3,4,5,6,7].map(i=>{
-        const t2=i*Math.PI/2;
-        const r2=2.4*Math.pow(phi,2*t2/Math.PI);
-        return [+(Math.cos(t2+Math.PI)*r2).toFixed(1),+(Math.sin(t2+Math.PI)*r2).toFixed(1)];
-      });
-      return S('-48 -48 96 96',82,82,C,
-        `<polyline points="${pts.map(p=>p.join(',')).join(' ')}" stroke-width="1.0" opacity=".78"/>
-         ${markers.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.2" fill="${CF}0.48)" stroke="none"/>`).join('')}
-         <line x1="-46" y1="0" x2="46" y2="0" opacity=".09"/>
-         <line x1="0" y1="-46" x2="0" y2="46" opacity=".09"/>
-         <circle cx="0" cy="0" r="3.5" fill="${CF}0.28)" stroke="none"/>
-        `);
+      return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="gs-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#1c0c04"/><stop offset="100%" stop-color="#080500"/></radialGradient>
+    <radialGradient id="gs-gl" cx="50%" cy="50%" r="58%"><stop offset="0%" stop-color="#ff6633" stop-opacity=".24"/><stop offset="100%" stop-color="#cc2200" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#gs-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#gs-gl)"/>
+  <rect x="28" y="52" width="64" height="64" fill="rgba(255,120,60,.07)" stroke="rgba(255,130,70,.38)" stroke-width=".8"/>
+  <rect x="28" y="52" width="40" height="40" fill="rgba(255,130,70,.06)" stroke="rgba(255,140,80,.32)" stroke-width=".7"/>
+  <rect x="68" y="52" width="24" height="24" fill="rgba(255,140,80,.06)" stroke="rgba(255,150,90,.28)" stroke-width=".6"/>
+  <rect x="68" y="76" width="16" height="16" fill="rgba(255,150,90,.06)" stroke="rgba(255,162,102,.25)" stroke-width=".55"/>
+  <rect x="68" y="76" width="10" height="10" fill="rgba(255,162,102,.06)" stroke="rgba(255,172,112,.22)" stroke-width=".5"/>
+  <rect x="68" y="82" width="6" height="6" fill="rgba(255,172,112,.07)" stroke="rgba(255,180,120,.20)" stroke-width=".45"/>
+  <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(255,138,78,.84)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="60" cy="84" r="3" fill="rgba(255,158,98,.58)"/>
+  <text x="60" y="153" text-anchor="middle" font-family="Georgia,serif" font-size="18" fill="rgba(255,138,70,.30)" font-style="italic">φ</text>
+</svg>`;
     })()
   },
 
-  // ═══ GARDEN ═══════════════════════════════════════════════════════════════
-
+  // 9. Sunflower
   { cat:'garden', label:'Sunflower',
     art: (() => {
-      const C='rgba(255,215,30,0.84)', CF='rgba(255,220,50,';
-      const petals=Array.from({length:16},(_,i)=>{
-        const a=i*TAU/16, r=32;
-        return `<ellipse cx="${(Math.cos(a)*r).toFixed(1)}" cy="${(Math.sin(a)*r).toFixed(1)}" rx="5.5" ry="13.5" transform="rotate(${(i*22.5).toFixed(1)} ${(Math.cos(a)*r).toFixed(1)} ${(Math.sin(a)*r).toFixed(1)})" opacity=".74"/>`;
+      const outerPetals = Array.from({length:16},(_,i)=>{
+        const a=i*Math.PI*2/16, r=32, px=(60+Math.cos(a)*r).toFixed(1), py=(80+Math.sin(a)*r).toFixed(1);
+        return `<ellipse cx="${px}" cy="${py}" rx="5.5" ry="14" transform="rotate(${(i*22.5).toFixed(1)} ${px} ${py})" fill="rgba(255,190,18,.85)" stroke="rgba(220,148,8,.45)" stroke-width=".6"/>`;
       }).join('');
-      const innerPetals=Array.from({length:10},(_,i)=>{
-        const a=i*TAU/10+TAU/20, r=20;
-        return `<ellipse cx="${(Math.cos(a)*r).toFixed(1)}" cy="${(Math.sin(a)*r).toFixed(1)}" rx="4" ry="9" transform="rotate(${(i*36+18).toFixed(1)} ${(Math.cos(a)*r).toFixed(1)} ${(Math.sin(a)*r).toFixed(1)})" opacity=".38"/>`;
+      const innerPetals = Array.from({length:10},(_,i)=>{
+        const a=i*Math.PI*2/10+Math.PI/10, r=20, px=(60+Math.cos(a)*r).toFixed(1), py=(80+Math.sin(a)*r).toFixed(1);
+        return `<ellipse cx="${px}" cy="${py}" rx="3.8" ry="8.5" transform="rotate(${(i*36+18).toFixed(1)} ${px} ${py})" fill="rgba(210,138,8,.52)" stroke="rgba(175,105,6,.32)" stroke-width=".5"/>`;
       }).join('');
-      const seeds=Array.from({length:13},(_,i)=>{
-        const a=i*TAU/13, rs=8+Math.sin(i*2.3)*2.5;
-        return `<circle cx="${(Math.cos(a)*rs).toFixed(1)}" cy="${(Math.sin(a)*rs).toFixed(1)}" r="1.4" fill="${CF}0.60)" stroke="none"/>`;
+      const seeds = Array.from({length:42},(_,i)=>{
+        const a=i*2.399963, r=2.8*Math.sqrt(i);
+        if(r>15.5) return '';
+        return `<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(80+Math.sin(a)*r).toFixed(1)}" r="${Math.max(0.8,1.2-i*0.01).toFixed(1)}" fill="rgba(155,75,18,.68)"/>`;
       }).join('');
-      return S('-52 -52 104 104',84,84,C,`
-        ${petals}${innerPetals}
-        <circle cx="0" cy="0" r="18" stroke-width="1.0"/>
-        <circle cx="0" cy="0" r="13" opacity=".30"/>
-        ${seeds}
-        <circle cx="0" cy="0" r="4.5" fill="${CF}0.38)" stroke="none"/>
-      `);
+      return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sf-bg" cx="50%" cy="78%" r="80%"><stop offset="0%" stop-color="#0c0900"/><stop offset="100%" stop-color="#040300"/></radialGradient>
+    <radialGradient id="sf-sky" cx="50%" cy="18%" r="55%"><stop offset="0%" stop-color="#664400" stop-opacity=".55"/><stop offset="100%" stop-color="#220e00" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#sf-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#sf-sky)"/>
+  <line x1="60" y1="106" x2="60" y2="158" stroke="rgba(38,95,18,.72)" stroke-width="2.8" stroke-linecap="round"/>
+  <path d="M 58,130 Q 28,118 26,104 Q 40,110 58,122" fill="rgba(38,95,20,.60)" stroke="rgba(48,118,22,.42)" stroke-width=".8"/>
+  <path d="M 62,140 Q 92,128 94,114 Q 80,120 62,132" fill="rgba(38,95,20,.55)" stroke="rgba(48,118,22,.42)" stroke-width=".8"/>
+  ${outerPetals}${innerPetals}
+  <circle cx="60" cy="80" r="19" fill="rgba(28,12,2,.94)" stroke="rgba(98,50,8,.52)" stroke-width="1.1"/>
+  <circle cx="60" cy="80" r="16" fill="none" stroke="rgba(80,38,5,.38)" stroke-width=".7"/>
+  ${seeds}
+  <circle cx="60" cy="80" r="4" fill="rgba(75,32,4,.85)"/>
+</svg>`;
     })()
   },
 
+  // 10. Butterfly
   { cat:'garden', label:'Butterfly',
-    art: (() => {
-      const C='rgba(215,75,255,0.76)', CF='rgba(225,90,255,';
-      return S('-58 -54 116 92', 90, 76, C, `
-        <path d="M 0,4 Q -12,-30 -40,-24 Q -58,-12 -50,10 Q -40,28 -22,30 Q -8,30 0,14" stroke-width="1.0" opacity=".84"/>
-        <path d="M 0,4 Q -8,-6 -22,2 Q -28,12 -20,20 Q -12,28 0,14" stroke-width="0.85" opacity=".60"/>
-        <path d="M 0,4 Q 12,-30 40,-24 Q 58,-12 50,10 Q 40,28 22,30 Q 8,30 0,14" stroke-width="1.0" opacity=".84"/>
-        <path d="M 0,4 Q 8,-6 22,2 Q 28,12 20,20 Q 12,28 0,14" stroke-width="0.85" opacity=".60"/>
-        <path d="M -20,-26 Q -32,-16 -32,-5" opacity=".32" stroke-width="0.7"/>
-        <path d="M 20,-26 Q 32,-16 32,-5" opacity=".32" stroke-width="0.7"/>
-        <ellipse cx="0" cy="9" rx="2.8" ry="13" stroke-width="0.9"/>
-        <path d="M 0,-5 Q -9,-24 -13,-32"/>
-        <circle cx="-13" cy="-32" r="2.2" fill="${CF}0.66)" stroke="none"/>
-        <path d="M 0,-5 Q 9,-24 13,-32"/>
-        <circle cx="13" cy="-32" r="2.2" fill="${CF}0.66)" stroke="none"/>
-        <circle cx="-28" cy="-4" r="3.5" fill="${CF}0.16)" stroke="none"/>
-        <circle cx="28" cy="-4" r="3.5" fill="${CF}0.16)" stroke="none"/>
-        <circle cx="-34" cy="12" r="2.5" fill="${CF}0.12)" stroke="none"/>
-        <circle cx="34" cy="12" r="2.5" fill="${CF}0.12)" stroke="none"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bf-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e0022"/><stop offset="100%" stop-color="#040009"/></radialGradient>
+    <radialGradient id="bf-gl" cx="50%" cy="52%" r="62%"><stop offset="0%" stop-color="#cc00ff" stop-opacity=".26"/><stop offset="100%" stop-color="#5500aa" stop-opacity="0"/></radialGradient>
+    <radialGradient id="bf-wul" cx="28%" cy="28%" r="72%"><stop offset="0%" stop-color="#ff44dd"/><stop offset="50%" stop-color="#8800cc"/><stop offset="100%" stop-color="#30006a" stop-opacity=".92"/></radialGradient>
+    <radialGradient id="bf-wur" cx="72%" cy="28%" r="72%"><stop offset="0%" stop-color="#ff44dd"/><stop offset="50%" stop-color="#8800cc"/><stop offset="100%" stop-color="#30006a" stop-opacity=".92"/></radialGradient>
+    <radialGradient id="bf-wll" cx="24%" cy="62%" r="66%"><stop offset="0%" stop-color="#cc22ff"/><stop offset="100%" stop-color="#1e0055" stop-opacity=".88"/></radialGradient>
+    <radialGradient id="bf-wlr" cx="76%" cy="62%" r="66%"><stop offset="0%" stop-color="#cc22ff"/><stop offset="100%" stop-color="#1e0055" stop-opacity=".88"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#bf-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#bf-gl)"/>
+  <path d="M 60,84 C 54,60 26,38 12,52 C 2,64 8,88 26,96 C 40,102 56,91 60,84" fill="url(#bf-wul)" stroke="rgba(255,100,220,.58)" stroke-width=".9"/>
+  <path d="M 60,84 C 66,60 94,38 108,52 C 118,64 112,88 94,96 C 80,102 64,91 60,84" fill="url(#bf-wur)" stroke="rgba(255,100,220,.58)" stroke-width=".9"/>
+  <path d="M 60,92 C 55,98 34,102 22,118 C 14,132 22,148 37,144 C 52,140 60,114 60,95" fill="url(#bf-wll)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
+  <path d="M 60,92 C 65,98 86,102 98,118 C 106,132 98,148 83,144 C 68,140 60,114 60,95" fill="url(#bf-wlr)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
+  <path d="M 60,84 C 48,74 32,60 20,62" fill="none" stroke="rgba(255,155,238,.26)" stroke-width=".7"/>
+  <path d="M 60,86 C 46,82 34,80 20,78" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
+  <path d="M 60,88 C 50,88 38,92 28,98" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
+  <path d="M 60,84 C 72,74 88,60 100,62" fill="none" stroke="rgba(255,155,238,.26)" stroke-width=".7"/>
+  <path d="M 60,86 C 74,82 86,80 100,78" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
+  <path d="M 60,88 C 70,88 82,92 92,98" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
+  <circle cx="30" cy="70" r="7.5" fill="rgba(255,200,255,.18)" stroke="rgba(255,138,238,.48)" stroke-width=".8"/>
+  <circle cx="30" cy="70" r="4.5" fill="rgba(255,80,220,.35)"/>
+  <circle cx="30" cy="70" r="2.2" fill="rgba(255,220,255,.58)"/>
+  <circle cx="90" cy="70" r="7.5" fill="rgba(255,200,255,.18)" stroke="rgba(255,138,238,.48)" stroke-width=".8"/>
+  <circle cx="90" cy="70" r="4.5" fill="rgba(255,80,220,.35)"/>
+  <circle cx="90" cy="70" r="2.2" fill="rgba(255,220,255,.58)"/>
+  <ellipse cx="60" cy="92" rx="3.8" ry="18" fill="rgba(48,0,80,.88)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
+  <circle cx="60" cy="74" r="5" fill="rgba(58,0,90,.88)" stroke="rgba(200,80,255,.48)" stroke-width=".8"/>
+  <path d="M 60,70 C 54,56 46,44 42,36" fill="none" stroke="rgba(200,100,255,.58)" stroke-width=".9" stroke-linecap="round"/>
+  <circle cx="42" cy="36" r="2.5" fill="rgba(220,120,255,.72)"/>
+  <path d="M 60,70 C 66,56 74,44 78,36" fill="none" stroke="rgba(200,100,255,.58)" stroke-width=".9" stroke-linecap="round"/>
+  <circle cx="78" cy="36" r="2.5" fill="rgba(220,120,255,.72)"/>
+</svg>`
   },
 
-  // ═══ CORE ═════════════════════════════════════════════════════════════════
-
+  // 11. Thesis
   { cat:'core', label:'Thesis', textClass:'serif',
     text:'"The money is made owning bottlenecks, not end products."',
-    art: (() => {
-      const C='rgba(100,155,255,0.62)', CF='rgba(120,170,255,';
-      const nodes=[
-        [0,-40],[35,-20],[35,20],[0,40],[-35,20],[-35,-20],[0,0]
-      ];
-      const edges=[[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[0,3],[1,4],[2,5]];
-      return S('-52 -52 104 104',82,82,C,`
-        ${edges.map(([a,b])=>`<line x1="${nodes[a][0]}" y1="${nodes[a][1]}" x2="${nodes[b][0]}" y2="${nodes[b][1]}" opacity="${b===6?'.38':'.18'}"/>`).join('')}
-        ${nodes.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i===6?5.5:3}" fill="${CF}${i===6?'0.32':'0.18'})" stroke="${C}" stroke-width="0.7"/>`).join('')}
-        <circle cx="0" cy="0" r="48" opacity=".05"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="th-bg" cx="50%" cy="38%" r="70%"><stop offset="0%" stop-color="#03070f"/><stop offset="100%" stop-color="#010205"/></radialGradient>
+    <radialGradient id="th-hub" cx="50%" cy="38%" r="56%"><stop offset="0%" stop-color="#ff9900" stop-opacity=".32"/><stop offset="100%" stop-color="#cc5500" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#th-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#th-hub)"/>
+  ${Array.from({length:6},(_,i)=>{
+    const a=i*Math.PI/3-Math.PI/6, r=40, nx=(60+Math.cos(a)*r).toFixed(1), ny=(58+Math.sin(a)*r).toFixed(1);
+    return `<line x1="${nx}" y1="${ny}" x2="60" y2="58" stroke="rgba(100,160,255,.20)" stroke-width=".8"/>
+    <circle cx="${nx}" cy="${ny}" r="6" fill="rgba(55,115,220,.22)" stroke="rgba(100,170,255,.52)" stroke-width=".9"/>
+    <circle cx="${nx}" cy="${ny}" r="3" fill="rgba(140,192,255,.44)"/>`;
+  }).join('')}
+  ${[[0,2],[1,3],[2,4],[3,5],[4,0],[5,1]].map(([a,b])=>{
+    const ra=a*Math.PI/3-Math.PI/6, rb=b*Math.PI/3-Math.PI/6, r=40;
+    return `<line x1="${(60+Math.cos(ra)*r).toFixed(1)}" y1="${(58+Math.sin(ra)*r).toFixed(1)}" x2="${(60+Math.cos(rb)*r).toFixed(1)}" y2="${(58+Math.sin(rb)*r).toFixed(1)}" stroke="rgba(80,130,220,.11)" stroke-width=".6"/>`;
+  }).join('')}
+  <circle cx="60" cy="58" r="14" fill="rgba(200,98,8,.24)" stroke="rgba(255,168,38,.68)" stroke-width="1.2"/>
+  <circle cx="60" cy="58" r="8" fill="rgba(255,148,28,.40)"/>
+  <circle cx="60" cy="58" r="4" fill="rgba(255,210,100,.72)"/>
+</svg>`
   },
 
+  // 12. Consciousness
   { cat:'core', label:'Consciousness', textClass:'mono',
     text:'LEVEL 32.25\n\nCOSMIC\nTRANSCENDENCE',
-    art: (() => {
-      const C='rgba(200,255,252,0.56)', CF='rgba(210,255,254,';
-      return S('-52 -52 104 104',82,82,C,`
-        ${[46,35,26,18,11].map((r,i)=>`<circle cx="0" cy="0" r="${r}" opacity="${(0.08+i*0.05).toFixed(2)}"/>`).join('')}
-        ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`<line x1="0" y1="0" x2="${(Math.cos(a)*50).toFixed(1)}" y2="${(Math.sin(a)*50).toFixed(1)}" opacity=".10"/>`;}).join('')}
-        ${[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>{const a=i*TAU/12;return`<circle cx="${(Math.cos(a)*35).toFixed(1)}" cy="${(Math.sin(a)*35).toFixed(1)}" r="2.2" fill="${CF}0.20)" stroke="none"/>`;}).join('')}
-        ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6+TAU/12;return`<circle cx="${(Math.cos(a)*22).toFixed(1)}" cy="${(Math.sin(a)*22).toFixed(1)}" r="1.5" fill="${CF}0.28)" stroke="none"/>`;}).join('')}
-        <circle cx="0" cy="0" r="5.5" fill="${CF}0.18)" stroke="none"/>
-        <circle cx="0" cy="0" r="2.5" fill="${CF}0.35)" stroke="none"/>
-      `);
-    })()
+    art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="cn-bg" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#020409"/><stop offset="100%" stop-color="#010203"/></radialGradient>
+    <radialGradient id="cn-glow" cx="50%" cy="40%" r="56%"><stop offset="0%" stop-color="#00ffff" stop-opacity=".17"/><stop offset="52%" stop-color="#0040aa" stop-opacity=".10"/><stop offset="100%" stop-color="#001130" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="120" height="168" rx="12" fill="url(#cn-bg)"/>
+  <rect width="120" height="168" rx="12" fill="url(#cn-glow)"/>
+  <circle cx="60" cy="62" r="48" fill="none" stroke="rgba(180,255,255,.08)" stroke-width=".8"/>
+  <circle cx="60" cy="62" r="38" fill="none" stroke="rgba(160,240,255,.13)" stroke-width=".9"/>
+  <circle cx="60" cy="62" r="28" fill="none" stroke="rgba(140,220,255,.18)" stroke-width=".9"/>
+  <circle cx="60" cy="62" r="18" fill="none" stroke="rgba(120,200,255,.24)" stroke-width="1.0"/>
+  <circle cx="60" cy="62" r="10" fill="none" stroke="rgba(100,210,255,.30)" stroke-width="1.0"/>
+  ${Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return`<circle cx="${(60+Math.cos(a)*38).toFixed(1)}" cy="${(62+Math.sin(a)*38).toFixed(1)}" r="2.6" fill="rgba(178,240,255,.28)" stroke="rgba(200,250,255,.36)" stroke-width=".6"/>`;}).join('')}
+  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3+Math.PI/6;return`<circle cx="${(60+Math.cos(a)*22).toFixed(1)}" cy="${(62+Math.sin(a)*22).toFixed(1)}" r="2.0" fill="rgba(160,232,255,.36)" stroke="rgba(190,245,255,.44)" stroke-width=".6"/>`;}).join('')}
+  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return`<line x1="60" y1="62" x2="${(60+Math.cos(a)*46).toFixed(1)}" y2="${(62+Math.sin(a)*46).toFixed(1)}" stroke="rgba(150,220,255,.08)" stroke-width=".6"/>`;}).join('')}
+  <circle cx="60" cy="62" r="6.5" fill="rgba(100,200,255,.20)" stroke="rgba(160,230,255,.42)" stroke-width=".8"/>
+  <circle cx="60" cy="62" r="3.5" fill="rgba(200,245,255,.55)"/>
+  <circle cx="60" cy="62" r="1.8" fill="rgba(240,255,255,.88)"/>
+</svg>`
   },
 ];
 
@@ -637,7 +736,7 @@ function buildCards() {
 
 // ─── Arrangements ─────────────────────────────────────────────────────────────
 
-let orbitOffset = 0; // rotated by wrist roll gesture
+let orbitOffset = 0;
 
 const ARRS = {
   drift(cards, t) {
@@ -691,7 +790,7 @@ function setArr(name) {
   document.getElementById('hud-l').textContent=name.toUpperCase();
 }
 
-// ─── Physics (pure spring, no pointer) ───────────────────────────────────────
+// ─── Physics ──────────────────────────────────────────────────────────────────
 
 const K=0.052, DMP=0.79;
 
@@ -723,7 +822,7 @@ function scatter() {
   });
 }
 
-// ─── Touch flash ─────────────────────────────────────────────────────────────
+// ─── Touch flash ──────────────────────────────────────────────────────────────
 
 let flashTimer=null;
 function flash(txt) {
@@ -742,7 +841,6 @@ const camCtx   = camCv.getContext('2d');
 const CONN = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],
               [0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];
 
-// Smoothing
 let smoothLM=null, noHandFrames=0;
 const LM_SMOOTH=0.38, NO_HAND_GRACE=10;
 
@@ -758,13 +856,9 @@ function applyLMSmooth(raw) {
   return smoothLM;
 }
 
-// Gesture state
 let gestHold=0, lastGest='none', confirmedGest='none', gestCooldown=0;
-// Wrist roll state
 let prevHandAngle=null;
-// Swipe state
 let handVelX=0, lastHandCX=null, swipeCooldown=0;
-// Total orbit degrees for HUD
 let orbitDeg=0;
 
 function classifyGesture(lm) {
@@ -800,7 +894,6 @@ function onHandResults(results) {
   const lm=applyLMSmooth(results.multiHandLandmarks[0]);
   const cw=camCv.width, ch=camCv.height;
 
-  // Skeleton overlay on pip cam
   CONN.forEach(([a,b])=>{
     camCtx.beginPath();
     camCtx.moveTo(lm[a].x*cw,lm[a].y*ch);
@@ -812,14 +905,11 @@ function onHandResults(results) {
     camCtx.fillStyle='rgba(220,255,200,0.90)'; camCtx.fill();
   });
 
-  // ── WRIST ROLL → orbit offset ──────────────────────────────────────────────
-  // Use angle of wrist (lm[0]) → middle MCP (lm[9]) axis
   const rawAngle = Math.atan2(lm[9].y-lm[0].y, lm[9].x-lm[0].x);
   if (prevHandAngle !== null) {
     let dA = rawAngle - prevHandAngle;
     if (dA >  Math.PI) dA -= TAU;
     if (dA < -Math.PI) dA += TAU;
-    // Only accumulate meaningful increments (filter noise)
     if (Math.abs(dA) < 0.10 && Math.abs(dA) > 0.004) {
       orbitOffset += dA * 0.28;
       orbitDeg = Math.round(orbitOffset * 180/Math.PI) % 360;
@@ -828,14 +918,11 @@ function onHandResults(results) {
   }
   prevHandAngle = rawAngle;
 
-  // ── LATERAL SWIPE → cycle layout ──────────────────────────────────────────
-  // Track horizontal center of wrist+mid for swipe
   const hcx = (lm[0].x + lm[9].x) * 0.5;
   if (lastHandCX !== null && swipeCooldown <= 0) {
     const dx = hcx - lastHandCX;
     handVelX = handVelX*0.65 + dx*0.35;
     if (Math.abs(handVelX) > 0.028) {
-      // Mirrored: camera x is flipped, so positive dx = moving right on screen
       const dir = handVelX > 0 ? 1 : -1;
       arrIdx = (arrIdx + dir + ARR_KEYS.length) % ARR_KEYS.length;
       setArr(ARR_KEYS[arrIdx]);
@@ -846,7 +933,6 @@ function onHandResults(results) {
   lastHandCX = hcx;
   if (swipeCooldown > 0) swipeCooldown--;
 
-  // ── HELD GESTURE → layout change ──────────────────────────────────────────
   const g = classifyGesture(lm);
   if (g === lastGest) { gestHold++; } else { gestHold=0; lastGest=g; }
 
@@ -856,7 +942,6 @@ function onHandResults(results) {
     document.getElementById('gest-glyph').textContent = g.toUpperCase();
   }
 
-  // Trigger layout on hold — one trigger per gesture episode
   if (gestHold === 10 && gestCooldown <= 0) {
     const LAY = {
       open:'drift', fist:'stack', peace:'fan',
@@ -869,10 +954,7 @@ function onHandResults(results) {
   }
   if (gestCooldown > 0) gestCooldown--;
 
-  // Scatter on fast open-palm flick (open gesture + high wrist velocity)
   if (g === 'open' && gestHold === 2) {
-    const wristVel = Math.abs(lm[0].y - (prevHandAngle !== null ? lm[0].y : lm[0].y));
-    // Use horizontal wrist speed as a proxy for flick
     if (Math.abs(handVelX) > 0.045 && swipeCooldown <= 0) {
       scatter(); flash('SCATTER');
     }
