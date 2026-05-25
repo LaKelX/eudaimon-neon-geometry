@@ -166,10 +166,26 @@ let W = innerWidth, H = innerHeight, cx = W/2, cy = H/2;
 const bgCv  = document.getElementById('bg');
 const bgCtx = bgCv.getContext('2d');
 
+// Pre-computed grain texture
+let grainPattern = null;
+function buildGrainPattern() {
+  const gc = document.createElement('canvas');
+  gc.width = 256; gc.height = 256;
+  const gx = gc.getContext('2d');
+  const id = gx.createImageData(256, 256);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.random() * 255 | 0;
+    d[i] = v; d[i+1] = v; d[i+2] = v; d[i+3] = 18;
+  }
+  gx.putImageData(id, 0, 0);
+  grainPattern = bgCtx.createPattern(gc, 'repeat');
+}
+
 const BOKEH = Array.from({length:28}, () => ({
   x: Math.random(), y: Math.random(),
   r: 24 + Math.random() * 70,
-  a: 0.025 + Math.random() * 0.065,
+  a: 0.018 + Math.random() * 0.045,
   spd: 0.00003 + Math.random() * 0.00009,
   ph: Math.random() * TAU,
   hue: Math.random() < 0.5 ? 50 + Math.random()*30 : 100 + Math.random()*40,
@@ -183,7 +199,7 @@ const PETALS = Array.from({length:22}, () => ({
   rs: (Math.random()-0.5)*0.04,
   w: 0.005 + Math.random()*0.01,
   h: 0.002 + Math.random()*0.006,
-  a: 0.35 + Math.random()*0.45,
+  a: 0.22 + Math.random()*0.30,
   hue: Math.random()<0.6 ? 340+Math.random()*25 : 30+Math.random()*20,
 }));
 
@@ -191,34 +207,39 @@ const TREES = Array.from({length:14}, (_,i) => ({
   x: (i/14)+(Math.random()*0.06-0.03),
   h: 0.12+Math.random()*0.10,
   w: 0.018+Math.random()*0.022,
+  lean: (Math.random()-0.5)*0.018,
 }));
 
 function drawGarden(t) {
+  if (!grainPattern) buildGrainPattern();
   bgCtx.clearRect(0, 0, W, H);
 
+  // Muted ochre oil-paint sky
   const sky = bgCtx.createLinearGradient(0, 0, 0, H*0.52);
-  sky.addColorStop(0,    '#f2d98a');
-  sky.addColorStop(0.25, '#ddc878');
-  sky.addColorStop(0.6,  '#b8cf8a');
-  sky.addColorStop(1,    '#7aaa62');
+  sky.addColorStop(0,    '#c8a068');
+  sky.addColorStop(0.28, '#b09050');
+  sky.addColorStop(0.62, '#96aa58');
+  sky.addColorStop(1,    '#6a9038');
   bgCtx.fillStyle = sky; bgCtx.fillRect(0, 0, W, H*0.52);
 
+  // Sun glow
   const sunX = W*0.68, sunY = H*0.11;
   const sg = bgCtx.createRadialGradient(sunX, sunY, 0, sunX, sunY, H*0.38);
-  sg.addColorStop(0,    'rgba(255,240,170,0.80)');
-  sg.addColorStop(0.22, 'rgba(255,215,105,0.32)');
-  sg.addColorStop(1,    'rgba(255,190,60,0)');
+  sg.addColorStop(0,    'rgba(240,210,140,0.60)');
+  sg.addColorStop(0.22, 'rgba(210,175,90,0.22)');
+  sg.addColorStop(1,    'rgba(190,150,60,0)');
   bgCtx.fillStyle = sg; bgCtx.fillRect(0, 0, W, H);
 
+  // Sun rays
   bgCtx.save();
   for (let r = 0; r < 14; r++) {
     const a   = (r/14)*TAU + Math.sin(t*0.00012+r*0.9)*0.018;
     const len = W*0.62, spread = 0.016+(r%3===0?0.012:0);
-    const op  = r%3===0?0.058:r%3===1?0.034:0.020;
+    const op  = r%3===0?0.040:r%3===1?0.024:0.014;
     const rg  = bgCtx.createLinearGradient(sunX, sunY, sunX+Math.cos(a)*len, sunY+Math.sin(a)*len);
-    rg.addColorStop(0,    `rgba(255,244,190,${op*2.6})`);
-    rg.addColorStop(0.18, `rgba(255,238,170,${op*1.4})`);
-    rg.addColorStop(1,    'rgba(255,225,140,0)');
+    rg.addColorStop(0,    `rgba(230,205,150,${op*2.6})`);
+    rg.addColorStop(0.18, `rgba(220,190,130,${op*1.4})`);
+    rg.addColorStop(1,    'rgba(200,170,110,0)');
     bgCtx.beginPath();
     bgCtx.moveTo(sunX, sunY);
     bgCtx.lineTo(sunX+Math.cos(a-spread)*len, sunY+Math.sin(a-spread)*len);
@@ -228,6 +249,7 @@ function drawGarden(t) {
   }
   bgCtx.restore();
 
+  // Ground — muted palette with subtle horizontal texture banding
   const gnd = bgCtx.createLinearGradient(0, H*0.48, 0, H);
   gnd.addColorStop(0,    '#5c9044');
   gnd.addColorStop(0.2,  '#4a7835');
@@ -235,43 +257,128 @@ function drawGarden(t) {
   gnd.addColorStop(1,    '#24401a');
   bgCtx.fillStyle = gnd; bgCtx.fillRect(0, H*0.48, W, H*0.52);
 
-  const mist = bgCtx.createLinearGradient(0, H*0.43, 0, H*0.56);
-  mist.addColorStop(0,    'rgba(218,232,200,0)');
-  mist.addColorStop(0.45, 'rgba(224,236,210,0.42)');
-  mist.addColorStop(1,    'rgba(200,220,195,0)');
-  bgCtx.fillStyle = mist; bgCtx.fillRect(0, H*0.43, W, H*0.13);
+  // Horizontal ground banding — 12 strips suggesting texture
+  for (let b = 0; b < 12; b++) {
+    const by = H*0.50 + (b/12)*H*0.50;
+    const bh = H*0.042;
+    const op = 0.025 + (b%3)*0.012 + Math.sin(b*1.7)*0.008;
+    bgCtx.fillStyle = `rgba(${b%2===0?'20,45,12':'38,70,20'},${op})`;
+    bgCtx.fillRect(0, by, W, bh);
+  }
 
+  // Mist — two overlapping layers
+  const mist1 = bgCtx.createLinearGradient(0, H*0.42, 0, H*0.56);
+  mist1.addColorStop(0,    'rgba(210,228,195,0)');
+  mist1.addColorStop(0.42, 'rgba(218,232,205,0.32)');
+  mist1.addColorStop(1,    'rgba(195,218,188,0)');
+  bgCtx.fillStyle = mist1; bgCtx.fillRect(0, H*0.42, W, H*0.14);
+
+  const mist2 = bgCtx.createLinearGradient(0, H*0.45, 0, H*0.54);
+  mist2.addColorStop(0,    'rgba(225,238,215,0)');
+  mist2.addColorStop(0.50, 'rgba(228,240,218,0.18)');
+  mist2.addColorStop(1,    'rgba(205,225,198,0)');
+  bgCtx.fillStyle = mist2; bgCtx.fillRect(0, H*0.45, W, H*0.09);
+
+  // Trees — organic bezier canopies
   TREES.forEach(tr => {
-    const tx=tr.x*W, ty=H*0.48, tw=tr.w*W, th=tr.h*H;
+    const tx = tr.x*W;
+    const ty = H*0.48;
+    const tw = tr.w*W;
+    const th = tr.h*H;
+    const leanX = tr.lean * W;
+
+    // Trunk — tapered rect
     bgCtx.beginPath();
-    bgCtx.moveTo(tx, ty);
-    bgCtx.lineTo(tx-tw*0.5, ty-th*0.55);
-    bgCtx.quadraticCurveTo(tx, ty-th, tx+tw*0.5, ty-th*0.55);
+    bgCtx.moveTo(tx - tw*0.07, ty);
+    bgCtx.lineTo(tx + tw*0.07, ty);
+    bgCtx.lineTo(tx + leanX*0.5 + tw*0.04, ty - th*0.52);
+    bgCtx.lineTo(tx + leanX*0.5 - tw*0.04, ty - th*0.52);
     bgCtx.closePath();
-    bgCtx.fillStyle='rgba(26,52,18,0.55)'; bgCtx.fill();
-    bgCtx.fillStyle='rgba(26,52,18,0.35)';
-    bgCtx.fillRect(tx-tw*0.12, ty-th*0.55, tw*0.24, th*0.55);
+    bgCtx.fillStyle = 'rgba(18,42,12,0.72)';
+    bgCtx.fill();
+
+    // Canopy — radial gradient fill (dark at edges, lighter inside)
+    const canopyX = tx + leanX;
+    const canopyY = ty - th*0.72;
+    const canopyRx = tw*1.05;
+    const canopyRy = th*0.56;
+
+    const canopyGrad = bgCtx.createRadialGradient(
+      canopyX, canopyY - canopyRy*0.18, canopyRy*0.08,
+      canopyX, canopyY, canopyRy
+    );
+    canopyGrad.addColorStop(0,   'rgba(40,80,22,0.58)');
+    canopyGrad.addColorStop(0.55,'rgba(28,60,16,0.68)');
+    canopyGrad.addColorStop(1,   'rgba(14,36,8,0.52)');
+
+    bgCtx.save();
+    bgCtx.beginPath();
+    // Organic bezier oval canopy
+    bgCtx.moveTo(canopyX, canopyY - canopyRy);
+    bgCtx.bezierCurveTo(
+      canopyX + canopyRx*0.62, canopyY - canopyRy*0.85,
+      canopyX + canopyRx*0.92, canopyY + canopyRy*0.18,
+      canopyX + canopyRx*0.38, canopyY + canopyRy*0.72
+    );
+    bgCtx.bezierCurveTo(
+      canopyX + canopyRx*0.10, canopyY + canopyRy,
+      canopyX - canopyRx*0.10, canopyY + canopyRy,
+      canopyX - canopyRx*0.38, canopyY + canopyRy*0.72
+    );
+    bgCtx.bezierCurveTo(
+      canopyX - canopyRx*0.92, canopyY + canopyRy*0.18,
+      canopyX - canopyRx*0.62, canopyY - canopyRy*0.85,
+      canopyX, canopyY - canopyRy
+    );
+    bgCtx.closePath();
+    bgCtx.fillStyle = canopyGrad;
+    bgCtx.fill();
+    bgCtx.restore();
+
+    // Secondary highlight lobe — offset to one side
+    const hlX = canopyX + canopyRx*0.32;
+    const hlY = canopyY - canopyRy*0.30;
+    bgCtx.save();
+    bgCtx.beginPath();
+    bgCtx.moveTo(hlX, hlY - canopyRy*0.38);
+    bgCtx.bezierCurveTo(
+      hlX + canopyRx*0.38, hlY - canopyRy*0.32,
+      hlX + canopyRx*0.42, hlY + canopyRy*0.18,
+      hlX, hlY + canopyRy*0.28
+    );
+    bgCtx.bezierCurveTo(
+      hlX - canopyRx*0.28, hlY + canopyRy*0.18,
+      hlX - canopyRx*0.32, hlY - canopyRy*0.18,
+      hlX, hlY - canopyRy*0.38
+    );
+    bgCtx.closePath();
+    bgCtx.fillStyle = 'rgba(52,95,28,0.28)';
+    bgCtx.fill();
+    bgCtx.restore();
   });
 
+  // Bokeh — softer, lower opacity
   BOKEH.forEach(b => {
     const bx=(b.x+Math.sin(t*b.spd+b.ph)*0.04)*W;
     const by=(b.y+Math.cos(t*b.spd*0.7+b.ph)*0.025)*H;
-    const gr=bgCtx.createRadialGradient(bx,by,0,bx,by,b.r);
-    gr.addColorStop(0, `hsla(${b.hue},65%,84%,${b.a})`);
-    gr.addColorStop(1, `hsla(${b.hue},55%,74%,0)`);
+    const gr=bgCtx.createRadialGradient(bx,by,0,bx,by,b.r*1.3);
+    gr.addColorStop(0, `hsla(${b.hue},48%,76%,${b.a})`);
+    gr.addColorStop(1, `hsla(${b.hue},40%,65%,0)`);
     bgCtx.fillStyle=gr;
-    bgCtx.beginPath(); bgCtx.arc(bx,by,b.r,0,TAU); bgCtx.fill();
+    bgCtx.beginPath(); bgCtx.arc(bx,by,b.r*1.3,0,TAU); bgCtx.fill();
   });
 
+  // Petals — lower opacity
   PETALS.forEach(p => {
     p.x=(p.x+p.vx+1)%1; p.y=(p.y+p.vy+1)%1; p.rot+=p.rs;
     bgCtx.save();
     bgCtx.translate(p.x*W, p.y*H); bgCtx.rotate(p.rot);
     bgCtx.beginPath(); bgCtx.ellipse(0,0,p.w*W,p.h*W,0,0,TAU);
-    bgCtx.fillStyle=`hsla(${p.hue},55%,84%,${p.a})`; bgCtx.fill();
+    bgCtx.fillStyle=`hsla(${p.hue},48%,78%,${p.a})`; bgCtx.fill();
     bgCtx.restore();
   });
 
+  // Grass blades
   for (let i=0;i<80;i++) {
     const gx=(i/80)*W+Math.sin(i*1.7)*18, gy=H*0.5+(i%3)*4;
     const gh=18+Math.sin(i*2.3+t*0.0008)*8;
@@ -281,6 +388,7 @@ function drawGarden(t) {
     bgCtx.strokeStyle=`rgba(38,72,22,${0.35+(i%4)*0.1})`; bgCtx.lineWidth=1.2; bgCtx.stroke();
   }
 
+  // Flowers
   [[0.08,0.52],[0.18,0.54],[0.32,0.51],[0.44,0.53],[0.56,0.52],[0.7,0.54],[0.82,0.51],[0.92,0.53]].forEach(([fx,fy],i) => {
     const flx=fx*W+Math.sin(t*0.0004+i)*3, fly=fy*H, r=3.5;
     const pc=i%2===0?'rgba(255,200,210,0.7)':'rgba(255,240,160,0.7)';
@@ -288,160 +396,249 @@ function drawGarden(t) {
     bgCtx.beginPath();bgCtx.arc(flx,fly,r*0.7,0,TAU);bgCtx.fillStyle='rgba(255,220,100,0.85)';bgCtx.fill();
   });
 
+  // Vignette
   const vig=bgCtx.createRadialGradient(W*0.5,H*0.56,Math.min(W,H)*0.22,W*0.5,H*0.56,Math.max(W,H)*0.74);
   vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(8,18,4,0.42)');
   bgCtx.fillStyle=vig; bgCtx.fillRect(0,0,W,H);
+
+  // Grain overlay
+  bgCtx.fillStyle = grainPattern;
+  bgCtx.globalAlpha = 0.055;
+  bgCtx.fillRect(0, 0, W, H);
+  bgCtx.globalAlpha = 1;
 }
 
-// ─── Card definitions (12 cards, fully illustrated) ──────────────────────────
+// ─── Card definitions (12 cards, oil-painting aesthetic) ─────────────────────
 
 const CARDS = [
 
-  // 1. Eye of Providence
+  // 1. Eye of Providence — dark umber, Caravaggio amber
   { cat:'divine', label:'Eye of Providence',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="ep-bg" cx="50%" cy="38%" r="80%"><stop offset="0%" stop-color="#2d1200"/><stop offset="100%" stop-color="#080400"/></radialGradient>
-    <radialGradient id="ep-halo" cx="50%" cy="38%" r="62%"><stop offset="0%" stop-color="#ff9900" stop-opacity=".40"/><stop offset="100%" stop-color="#ff4400" stop-opacity="0"/></radialGradient>
-    <radialGradient id="ep-iris" cx="35%" cy="30%" r="62%"><stop offset="0%" stop-color="#fff5c0"/><stop offset="42%" stop-color="#ffaa00"/><stop offset="100%" stop-color="#c04000"/></radialGradient>
+    <radialGradient id="ep-bgr" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#2a1100"/>
+      <stop offset="100%" stop-color="#060200"/>
+    </radialGradient>
+    <filter id="ep-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="ep-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <radialGradient id="ep-iris" cx="35%" cy="30%" r="62%">
+      <stop offset="0%" stop-color="#fff5c0"/>
+      <stop offset="42%" stop-color="#ffaa00"/>
+      <stop offset="100%" stop-color="#c04000"/>
+    </radialGradient>
+    <clipPath id="ep-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#ep-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#ep-halo)"/>
-  <polygon points="60,20 13,112 107,112" fill="rgba(255,155,30,.13)" stroke="rgba(255,185,55,.68)" stroke-width="1.1" stroke-linejoin="round"/>
-  <line x1="13" y1="112" x2="107" y2="112" stroke="rgba(255,195,65,.32)" stroke-width=".8"/>
-  ${Array.from({length:20},(_,i)=>{const a=(i/20)*Math.PI*2-Math.PI/2,r1=30,r2=56+(i%4===0?10:i%2===0?5:2),op=i%4===0?.55:i%2===0?.32:.18,sw=i%4===0?1.1:.5;return`<line x1="${(60+Math.cos(a)*r1).toFixed(1)}" y1="${(66+Math.sin(a)*r1).toFixed(1)}" x2="${(60+Math.cos(a)*r2).toFixed(1)}" y2="${(66+Math.sin(a)*r2).toFixed(1)}" stroke="rgba(255,175,50,${op})" stroke-width="${sw}"/>`;}).join('')}
-  <ellipse cx="60" cy="66" rx="24" ry="14" fill="rgba(255,248,215,.92)"/>
-  <circle cx="60" cy="66" r="14" fill="url(#ep-iris)"/>
-  <circle cx="60" cy="66" r="14" fill="none" stroke="rgba(170,70,10,.40)" stroke-width="2.2"/>
-  <circle cx="60" cy="66" r="9" fill="none" stroke="rgba(110,40,5,.30)" stroke-width="1.3"/>
-  <circle cx="60" cy="66" r="5.5" fill="#030100"/>
-  <circle cx="57" cy="63" r="2.5" fill="rgba(255,255,255,.74)"/>
-  <path d="M 36,66 Q 60,52 84,66" fill="none" stroke="rgba(200,130,40,.52)" stroke-width=".9"/>
-  <path d="M 36,66 Q 60,80 84,66" fill="none" stroke="rgba(200,130,40,.52)" stroke-width=".9"/>
-  <circle cx="60" cy="112" r="3" fill="rgba(255,165,45,.50)"/>
-  <circle cx="13" cy="112" r="2.2" fill="rgba(255,165,45,.38)"/>
-  <circle cx="107" cy="112" r="2.2" fill="rgba(255,165,45,.38)"/>
+  <rect width="120" height="168" rx="12" fill="url(#ep-bgr)"/>
+  <g clip-path="url(#ep-clip)">
+    <!-- Underpainting: large blurred amber beam from above -->
+    <ellipse cx="60" cy="30" rx="55" ry="70" fill="rgba(200,110,10,0.55)" filter="url(#ep-soft)"/>
+    <!-- Secondary warm mass -->
+    <ellipse cx="60" cy="66" rx="38" ry="28" fill="rgba(180,90,5,0.45)" filter="url(#ep-soft)"/>
+    <!-- Medium blurred triangle glow -->
+    <polygon points="60,14 8,118 112,118" fill="rgba(160,80,5,0.28)" filter="url(#ep-med)"/>
+    <!-- Sharp triangle -->
+    <polygon points="60,22 14,112 106,112" fill="rgba(255,155,30,0.10)" stroke="rgba(220,160,45,0.72)" stroke-width="1.1" stroke-linejoin="round"/>
+    <line x1="14" y1="112" x2="106" y2="112" stroke="rgba(200,155,50,0.28)" stroke-width="0.8"/>
+    <!-- Eye white -->
+    <ellipse cx="60" cy="66" rx="24" ry="14" fill="rgba(248,235,200,0.88)"/>
+    <!-- Iris -->
+    <circle cx="60" cy="66" r="13.5" fill="url(#ep-iris)"/>
+    <!-- Iris ring -->
+    <circle cx="60" cy="66" r="13.5" fill="none" stroke="rgba(160,65,8,0.42)" stroke-width="2.2"/>
+    <!-- Pupil -->
+    <circle cx="60" cy="66" r="5.5" fill="#080100"/>
+    <!-- Highlight -->
+    <circle cx="57" cy="63" r="2.5" fill="rgba(255,255,255,0.78)"/>
+    <!-- Eyelid curves -->
+    <path d="M 37,66 Q 60,52 83,66" fill="none" stroke="rgba(190,120,35,0.52)" stroke-width="0.9"/>
+    <path d="M 37,66 Q 60,80 83,66" fill="none" stroke="rgba(190,120,35,0.52)" stroke-width="0.9"/>
+    <!-- Vertex dots -->
+    <circle cx="60" cy="112" r="3" fill="rgba(240,155,40,0.55)"/>
+    <circle cx="14" cy="112" r="2.2" fill="rgba(220,140,35,0.38)"/>
+    <circle cx="106" cy="112" r="2.2" fill="rgba(220,140,35,0.38)"/>
+    <!-- Ray lines (medium blurred) -->
+    ${Array.from({length:12},(_,i)=>{const a=(i/12)*Math.PI*2-Math.PI/2,r1=30,r2=48+(i%3===0?10:4),op=i%3===0?0.38:0.18,sw=i%3===0?0.9:0.5;return`<line x1="${(60+Math.cos(a)*r1).toFixed(1)}" y1="${(66+Math.sin(a)*r1).toFixed(1)}" x2="${(60+Math.cos(a)*r2).toFixed(1)}" y2="${(66+Math.sin(a)*r2).toFixed(1)}" stroke="rgba(210,155,45,${op})" stroke-width="${sw}"/>`}).join('')}
+  </g>
 </svg>`
   },
 
-  // 2. Merkaba
+  // 2. Merkaba — near-black space, cold stellar cyan
   { cat:'divine', label:'Merkaba',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="mk-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#04101e"/><stop offset="100%" stop-color="#01030a"/></radialGradient>
-    <radialGradient id="mk-ctr" cx="50%" cy="50%" r="52%"><stop offset="0%" stop-color="#00ccff" stop-opacity=".28"/><stop offset="100%" stop-color="#0033cc" stop-opacity="0"/></radialGradient>
+    <radialGradient id="mk-bgr" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#030d1a"/>
+      <stop offset="100%" stop-color="#010308"/>
+    </radialGradient>
+    <filter id="mk-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="mk-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="mk-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#mk-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#mk-ctr)"/>
-  <circle cx="9" cy="14" r=".8" fill="rgba(200,230,255,.45)"/>
-  <circle cx="24" cy="8" r="1.0" fill="rgba(200,230,255,.55)"/>
-  <circle cx="47" cy="4" r=".7" fill="rgba(200,230,255,.35)"/>
-  <circle cx="80" cy="11" r="1.1" fill="rgba(200,230,255,.62)"/>
-  <circle cx="99" cy="7" r=".8" fill="rgba(200,230,255,.42)"/>
-  <circle cx="113" cy="21" r=".9" fill="rgba(200,230,255,.50)"/>
-  <circle cx="116" cy="42" r=".7" fill="rgba(200,230,255,.36)"/>
-  <circle cx="4" cy="30" r=".9" fill="rgba(200,230,255,.48)"/>
-  <circle cx="3" cy="58" r=".8" fill="rgba(200,230,255,.40)"/>
-  <circle cx="7" cy="85" r="1.0" fill="rgba(200,230,255,.55)"/>
-  <circle cx="5" cy="110" r=".7" fill="rgba(200,230,255,.34)"/>
-  <circle cx="112" cy="78" r=".9" fill="rgba(200,230,255,.46)"/>
-  <circle cx="115" cy="102" r=".8" fill="rgba(200,230,255,.42)"/>
-  <circle cx="110" cy="128" r=".9" fill="rgba(200,230,255,.50)"/>
-  <circle cx="72" cy="161" r="1.0" fill="rgba(200,230,255,.55)"/>
-  <circle cx="42" cy="160" r=".8" fill="rgba(200,230,255,.40)"/>
-  <circle cx="18" cy="154" r=".9" fill="rgba(200,230,255,.46)"/>
-  <circle cx="35" cy="45" r=".6" fill="rgba(200,230,255,.28)"/>
-  <circle cx="88" cy="38" r=".7" fill="rgba(200,230,255,.34)"/>
-  <circle cx="95" cy="130" r=".6" fill="rgba(200,230,255,.30)"/>
-  <polygon points="60,22 107,95 13,95" fill="rgba(0,180,255,.10)" stroke="rgba(60,200,255,.78)" stroke-width="1.2" stroke-linejoin="round"/>
-  <polygon points="60,148 13,75 107,75" fill="rgba(0,60,200,.10)" stroke="rgba(40,155,255,.78)" stroke-width="1.2" stroke-linejoin="round"/>
-  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3-Math.PI/6,r=34;return`<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(85+Math.sin(a)*r).toFixed(1)}" r="3.0" fill="rgba(80,215,255,.58)"/>`;}).join('')}
-  <circle cx="60" cy="85" r="13" fill="rgba(0,160,255,.12)" stroke="rgba(80,210,255,.32)" stroke-width=".9"/>
-  <circle cx="60" cy="85" r="5.5" fill="rgba(100,225,255,.38)"/>
-  <circle cx="60" cy="85" r="2.8" fill="rgba(220,248,255,.78)"/>
+  <rect width="120" height="168" rx="12" fill="url(#mk-bgr)"/>
+  <g clip-path="url(#mk-clip)">
+    <!-- Star field — hardcoded 20 dots -->
+    <circle cx="9" cy="14" r="0.8" fill="rgba(200,230,255,0.48)"/>
+    <circle cx="24" cy="8" r="1.0" fill="rgba(200,230,255,0.58)"/>
+    <circle cx="47" cy="4" r="0.7" fill="rgba(200,230,255,0.36)"/>
+    <circle cx="80" cy="11" r="1.1" fill="rgba(200,230,255,0.64)"/>
+    <circle cx="99" cy="7" r="0.8" fill="rgba(200,230,255,0.44)"/>
+    <circle cx="113" cy="21" r="0.9" fill="rgba(200,230,255,0.52)"/>
+    <circle cx="116" cy="42" r="0.7" fill="rgba(200,230,255,0.38)"/>
+    <circle cx="4" cy="30" r="0.9" fill="rgba(200,230,255,0.50)"/>
+    <circle cx="3" cy="58" r="0.8" fill="rgba(200,230,255,0.42)"/>
+    <circle cx="7" cy="85" r="1.0" fill="rgba(200,230,255,0.56)"/>
+    <circle cx="5" cy="110" r="0.7" fill="rgba(200,230,255,0.35)"/>
+    <circle cx="112" cy="78" r="0.9" fill="rgba(200,230,255,0.48)"/>
+    <circle cx="115" cy="102" r="0.8" fill="rgba(200,230,255,0.44)"/>
+    <circle cx="110" cy="128" r="0.9" fill="rgba(200,230,255,0.52)"/>
+    <circle cx="72" cy="161" r="1.0" fill="rgba(200,230,255,0.56)"/>
+    <circle cx="42" cy="160" r="0.8" fill="rgba(200,230,255,0.42)"/>
+    <circle cx="18" cy="154" r="0.9" fill="rgba(200,230,255,0.48)"/>
+    <circle cx="35" cy="45" r="0.6" fill="rgba(200,230,255,0.30)"/>
+    <circle cx="88" cy="38" r="0.7" fill="rgba(200,230,255,0.36)"/>
+    <circle cx="95" cy="130" r="0.6" fill="rgba(200,230,255,0.32)"/>
+    <!-- Large blurred cyan ellipse — underpainting -->
+    <ellipse cx="60" cy="85" rx="52" ry="60" fill="rgba(0,180,240,0.38)" filter="url(#mk-soft)"/>
+    <!-- Medium blurred inner glow -->
+    <ellipse cx="60" cy="85" rx="24" ry="28" fill="rgba(0,210,255,0.30)" filter="url(#mk-med)"/>
+    <!-- Two overlapping triangles -->
+    <polygon points="60,22 107,95 13,95" fill="rgba(0,180,255,0.09)" stroke="rgba(60,200,255,0.78)" stroke-width="1.2" stroke-linejoin="round"/>
+    <polygon points="60,148 13,75 107,75" fill="rgba(0,60,200,0.09)" stroke="rgba(40,155,255,0.78)" stroke-width="1.2" stroke-linejoin="round"/>
+    <!-- 6 hex vertex dots -->
+    ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3-Math.PI/6,r=34;return`<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(85+Math.sin(a)*r).toFixed(1)}" r="3.0" fill="rgba(80,215,255,0.60)"/>`}).join('')}
+    <!-- Glowing center core -->
+    <circle cx="60" cy="85" r="13" fill="rgba(0,160,255,0.10)" stroke="rgba(80,210,255,0.30)" stroke-width="0.9"/>
+    <circle cx="60" cy="85" r="5.5" fill="rgba(100,225,255,0.40)"/>
+    <circle cx="60" cy="85" r="2.8" fill="rgba(220,248,255,0.82)"/>
+  </g>
 </svg>`
   },
 
-  // 3. Vesica Piscis
+  // 3. Vesica Piscis — deep plum, Rothko diptych pressing color fields
   { cat:'divine', label:'Vesica Piscis',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="vp-bg" cx="50%" cy="50%" r="72%"><stop offset="0%" stop-color="#100028"/><stop offset="100%" stop-color="#050010"/></radialGradient>
-    <radialGradient id="vp-gl" cx="50%" cy="50%" r="56%"><stop offset="0%" stop-color="#cc44ff" stop-opacity=".28"/><stop offset="100%" stop-color="#6600aa" stop-opacity="0"/></radialGradient>
-    <radialGradient id="vp-lens" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#ee88ff" stop-opacity=".55"/><stop offset="100%" stop-color="#9920cc" stop-opacity=".35"/></radialGradient>
+    <radialGradient id="vp-bgr" cx="50%" cy="50%" r="72%">
+      <stop offset="0%" stop-color="#120028"/>
+      <stop offset="100%" stop-color="#060012"/>
+    </radialGradient>
+    <filter id="vp-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="vp-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <radialGradient id="vp-lens" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#ee88ff" stop-opacity="0.60"/>
+      <stop offset="100%" stop-color="#9920cc" stop-opacity="0.38"/>
+    </radialGradient>
+    <clipPath id="vp-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#vp-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#vp-gl)"/>
-  <circle cx="46" cy="84" r="44" fill="rgba(180,60,255,.09)" stroke="rgba(190,80,255,.50)" stroke-width=".9"/>
-  <circle cx="74" cy="84" r="44" fill="rgba(130,40,220,.09)" stroke="rgba(170,60,255,.50)" stroke-width=".9"/>
-  <path d="M 60,42 A 44,44 0 0 1 60,126 A 44,44 0 0 1 60,42 Z" fill="url(#vp-lens)" stroke="rgba(220,110,255,.80)" stroke-width="1.2"/>
-  <line x1="60" y1="38" x2="60" y2="130" stroke="rgba(220,120,255,.38)" stroke-width=".7"/>
-  <line x1="2" y1="84" x2="118" y2="84" stroke="rgba(180,80,255,.16)" stroke-width=".6"/>
-  <line x1="46" y1="42" x2="74" y2="42" stroke="rgba(200,100,255,.22)" stroke-width=".6"/>
-  <line x1="46" y1="126" x2="74" y2="126" stroke="rgba(200,100,255,.22)" stroke-width=".6"/>
-  <circle cx="60" cy="42" r="3.2" fill="rgba(235,135,255,.68)"/>
-  <circle cx="60" cy="126" r="3.2" fill="rgba(235,135,255,.68)"/>
-  <circle cx="46" cy="84" r="2.4" fill="rgba(205,105,255,.48)"/>
-  <circle cx="74" cy="84" r="2.4" fill="rgba(205,105,255,.48)"/>
-  <circle cx="60" cy="84" r="5" fill="rgba(240,155,255,.35)" stroke="rgba(245,165,255,.55)" stroke-width=".8"/>
-  <circle cx="60" cy="84" r="2.2" fill="rgba(255,210,255,.72)"/>
-  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return`<line x1="${(46+Math.cos(a)*44).toFixed(1)}" y1="${(84+Math.sin(a)*44).toFixed(1)}" x2="${(74+Math.cos(a)*44).toFixed(1)}" y2="${(84+Math.sin(a)*44).toFixed(1)}" stroke="rgba(200,100,255,.08)" stroke-width=".5"/>`;}).join('')}
+  <rect width="120" height="168" rx="12" fill="url(#vp-bgr)"/>
+  <g clip-path="url(#vp-clip)">
+    <!-- Left color field — large blurred magenta ellipse -->
+    <ellipse cx="42" cy="84" rx="58" ry="70" fill="rgba(200,40,255,0.42)" filter="url(#vp-soft)"/>
+    <!-- Right color field — large blurred violet ellipse -->
+    <ellipse cx="78" cy="84" rx="58" ry="70" fill="rgba(120,30,220,0.42)" filter="url(#vp-soft)"/>
+    <!-- Intersection brightening -->
+    <ellipse cx="60" cy="84" rx="20" ry="52" fill="rgba(220,100,255,0.28)" filter="url(#vp-med)"/>
+    <!-- Sharp circle outlines -->
+    <circle cx="46" cy="84" r="44" fill="none" stroke="rgba(190,80,255,0.52)" stroke-width="0.9"/>
+    <circle cx="74" cy="84" r="44" fill="none" stroke="rgba(170,60,255,0.52)" stroke-width="0.9"/>
+    <!-- Vesica lens -->
+    <path d="M 60,42 A 44,44 0 0 1 60,126 A 44,44 0 0 1 60,42 Z" fill="url(#vp-lens)" stroke="rgba(220,110,255,0.82)" stroke-width="1.2"/>
+    <!-- Guide lines -->
+    <line x1="60" y1="38" x2="60" y2="130" stroke="rgba(220,120,255,0.38)" stroke-width="0.7"/>
+    <!-- Node dots -->
+    <circle cx="60" cy="42" r="3.2" fill="rgba(235,135,255,0.70)"/>
+    <circle cx="60" cy="126" r="3.2" fill="rgba(235,135,255,0.70)"/>
+    <circle cx="46" cy="84" r="2.4" fill="rgba(205,105,255,0.52)"/>
+    <circle cx="74" cy="84" r="2.4" fill="rgba(205,105,255,0.52)"/>
+    <!-- Center node -->
+    <circle cx="60" cy="84" r="5" fill="rgba(240,155,255,0.38)" stroke="rgba(245,165,255,0.58)" stroke-width="0.8"/>
+    <circle cx="60" cy="84" r="2.2" fill="rgba(255,210,255,0.76)"/>
+  </g>
 </svg>`
   },
 
-  // 4. Caduceus
+  // 4. Caduceus — dark forest night, teal ascending energy
   { cat:'divine', label:'Caduceus',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="cd-bg" cx="50%" cy="35%" r="80%"><stop offset="0%" stop-color="#001a14"/><stop offset="100%" stop-color="#000a08"/></radialGradient>
-    <radialGradient id="cd-gl" cx="50%" cy="18%" r="60%"><stop offset="0%" stop-color="#00ffaa" stop-opacity=".22"/><stop offset="100%" stop-color="#00aa66" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cd-bgr" cx="50%" cy="35%" r="80%">
+      <stop offset="0%" stop-color="#001a14"/>
+      <stop offset="100%" stop-color="#000a08"/>
+    </radialGradient>
+    <filter id="cd-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="cd-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="cd-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#cd-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#cd-gl)"/>
-  <line x1="60" y1="18" x2="60" y2="150" stroke="rgba(80,220,170,.65)" stroke-width="2.0" stroke-linecap="round"/>
-  <path d="M 60,40 Q 40,44 38,58 Q 36,72 60,78 Q 84,84 82,98 Q 80,112 60,118 Q 40,124 38,136 Q 36,146 60,150" fill="none" stroke="rgba(60,200,140,.80)" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M 60,40 Q 80,44 82,58 Q 84,72 60,78 Q 36,84 38,98 Q 40,112 60,118 Q 80,124 82,136 Q 84,146 60,150" fill="none" stroke="rgba(40,170,120,.80)" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M 60,40 Q 38,36 34,46 Q 32,56 60,56" fill="none" stroke="rgba(60,200,140,.72)" stroke-width="1.4" stroke-linecap="round"/>
-  <path d="M 60,40 Q 82,36 86,46 Q 88,56 60,56" fill="none" stroke="rgba(40,170,120,.72)" stroke-width="1.4" stroke-linecap="round"/>
-  <path d="M 46,40 Q 38,28 48,22 Q 58,16 60,24" fill="none" stroke="rgba(80,210,160,.60)" stroke-width="1.0" stroke-linecap="round"/>
-  <path d="M 74,40 Q 82,28 72,22 Q 62,16 60,24" fill="none" stroke="rgba(60,180,140,.60)" stroke-width="1.0" stroke-linecap="round"/>
-  <circle cx="60" cy="18" r="8" fill="rgba(40,200,150,.30)" stroke="rgba(80,230,180,.72)" stroke-width="1.1"/>
-  <circle cx="60" cy="18" r="4.5" fill="rgba(140,255,210,.65)"/>
-  <circle cx="60" cy="18" r="2" fill="rgba(220,255,240,.85)"/>
-  <circle cx="60" cy="78" r="4.5" fill="rgba(60,200,150,.22)" stroke="rgba(80,220,170,.50)" stroke-width=".8"/>
-  <circle cx="60" cy="118" r="4.5" fill="rgba(60,200,150,.22)" stroke="rgba(80,220,170,.50)" stroke-width=".8"/>
-  <line x1="46" y1="150" x2="74" y2="150" stroke="rgba(80,200,160,.30)" stroke-width=".9"/>
+  <rect width="120" height="168" rx="12" fill="url(#cd-bgr)"/>
+  <g clip-path="url(#cd-clip)">
+    <!-- Blurred teal column of light rising -->
+    <ellipse cx="60" cy="84" rx="20" ry="80" fill="rgba(0,210,160,0.30)" filter="url(#cd-soft)"/>
+    <!-- Blurred upper orb glow -->
+    <ellipse cx="60" cy="20" rx="22" ry="22" fill="rgba(0,240,180,0.28)" filter="url(#cd-med)"/>
+    <!-- Two serpent paths blurred -->
+    <path d="M 60,40 Q 38,48 36,62 Q 34,76 60,82 Q 86,88 84,102 Q 82,116 60,122 Q 38,128 36,140 Q 34,150 60,154" fill="none" stroke="rgba(40,200,140,0.45)" stroke-width="5" filter="url(#cd-med)" stroke-linecap="round"/>
+    <path d="M 60,40 Q 82,48 84,62 Q 86,76 60,82 Q 34,88 36,102 Q 38,116 60,122 Q 82,128 84,140 Q 86,150 60,154" fill="none" stroke="rgba(20,170,120,0.45)" stroke-width="5" filter="url(#cd-med)" stroke-linecap="round"/>
+    <!-- Staff line -->
+    <line x1="60" y1="18" x2="60" y2="154" stroke="rgba(80,220,170,0.62)" stroke-width="2.0" stroke-linecap="round"/>
+    <!-- Sharp serpents -->
+    <path d="M 60,40 Q 40,44 38,58 Q 36,72 60,78 Q 84,84 82,98 Q 80,112 60,118 Q 40,124 38,136 Q 36,146 60,150" fill="none" stroke="rgba(60,200,140,0.80)" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M 60,40 Q 80,44 82,58 Q 84,72 60,78 Q 36,84 38,98 Q 40,112 60,118 Q 80,124 82,136 Q 84,146 60,150" fill="none" stroke="rgba(40,170,120,0.80)" stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Wings -->
+    <path d="M 46,40 Q 38,28 48,22 Q 58,16 60,24" fill="none" stroke="rgba(80,210,160,0.60)" stroke-width="1.0" stroke-linecap="round"/>
+    <path d="M 74,40 Q 82,28 72,22 Q 62,16 60,24" fill="none" stroke="rgba(60,180,140,0.60)" stroke-width="1.0" stroke-linecap="round"/>
+    <!-- Orb at top -->
+    <circle cx="60" cy="18" r="8" fill="rgba(40,200,150,0.28)" stroke="rgba(80,230,180,0.72)" stroke-width="1.1"/>
+    <circle cx="60" cy="18" r="4.5" fill="rgba(140,255,210,0.62)"/>
+    <circle cx="60" cy="18" r="2" fill="rgba(220,255,240,0.88)"/>
+    <!-- Mid crossing rings -->
+    <circle cx="60" cy="78" r="4.5" fill="rgba(60,200,150,0.20)" stroke="rgba(80,220,170,0.48)" stroke-width="0.8"/>
+    <circle cx="60" cy="118" r="4.5" fill="rgba(60,200,150,0.20)" stroke="rgba(80,220,170,0.48)" stroke-width="0.8"/>
+    <line x1="46" y1="150" x2="74" y2="150" stroke="rgba(80,200,160,0.28)" stroke-width="0.9"/>
+  </g>
 </svg>`
   },
 
-  // 5. Banyan
+  // 5. Banyan — deep viridian, atmospheric moon painting
   { cat:'forest', label:'Banyan',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bn-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#060e08"/><stop offset="100%" stop-color="#020806"/></linearGradient>
-    <radialGradient id="bn-moon" cx="50%" cy="20%" r="30%"><stop offset="0%" stop-color="#ccffd8" stop-opacity=".45"/><stop offset="100%" stop-color="#60cc80" stop-opacity="0"/></radialGradient>
+    <linearGradient id="bn-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#060e08"/>
+      <stop offset="100%" stop-color="#020806"/>
+    </linearGradient>
+    <filter id="bn-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="bn-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="bn-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
   <rect width="120" height="168" rx="12" fill="url(#bn-sky)"/>
-  <rect width="120" height="168" rx="12" fill="url(#bn-moon)"/>
-  <rect x="0" y="130" width="120" height="38" rx="0" fill="rgba(8,38,10,.75)"/>
-  <circle cx="60" cy="30" r="18" fill="rgba(200,255,210,.18)" stroke="rgba(180,255,200,.32)" stroke-width=".8"/>
-  <circle cx="60" cy="30" r="12" fill="rgba(200,255,210,.12)"/>
-  <rect x="54" y="82" width="12" height="52" rx="5" fill="rgba(18,55,14,.88)"/>
-  <path d="M 6,82 Q 8,52 22,42 Q 38,32 55,40 Q 62,36 68,40 Q 82,32 98,42 Q 112,52 114,82 Z" fill="rgba(18,72,20,.88)" stroke="rgba(36,105,38,.55)" stroke-width=".8"/>
-  <path d="M 16,82 Q 18,60 30,52 Q 46,44 60,50 Q 74,44 90,52 Q 102,60 104,82 Z" fill="rgba(26,88,28,.82)" stroke="rgba(48,122,50,.48)" stroke-width=".7"/>
-  <path d="M 24,82 Q 26,66 36,60 Q 50,54 60,58 Q 70,54 84,60 Q 94,66 96,82 Z" fill="rgba(34,104,36,.76)" stroke="rgba(60,140,62,.42)" stroke-width=".6"/>
-  <line x1="14" y1="130" x2="14" y2="84" stroke="rgba(18,55,14,.60)" stroke-width="1.2"/>
-  <line x1="26" y1="130" x2="26" y2="80" stroke="rgba(18,55,14,.65)" stroke-width="1.0"/>
-  <line x1="40" y1="130" x2="40" y2="75" stroke="rgba(18,55,14,.70)" stroke-width="1.2"/>
-  <line x1="80" y1="130" x2="80" y2="75" stroke="rgba(18,55,14,.70)" stroke-width="1.2"/>
-  <line x1="94" y1="130" x2="94" y2="80" stroke="rgba(18,55,14,.65)" stroke-width="1.0"/>
-  <line x1="106" y1="130" x2="106" y2="84" stroke="rgba(18,55,14,.60)" stroke-width="1.2"/>
-  ${Array.from({length:8},(_,i)=>{const x=10+i*14,y=52+Math.sin(i*1.4)*7;return`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" transform="rotate(${i*14-25} ${x} ${y})" fill="rgba(48,140,52,.58)"/>`;}).join('')}
-  <ellipse cx="60" cy="132" rx="52" ry="7" fill="rgba(22,65,18,.55)"/>
+  <g clip-path="url(#bn-clip)">
+    <!-- Moon — large blurred warm-white circle -->
+    <circle cx="60" cy="30" r="30" fill="rgba(210,255,215,0.30)" filter="url(#bn-soft)"/>
+    <!-- Moon sharp -->
+    <circle cx="60" cy="30" r="18" fill="rgba(200,255,210,0.18)" stroke="rgba(180,255,200,0.32)" stroke-width="0.8"/>
+    <circle cx="60" cy="30" r="12" fill="rgba(200,255,210,0.12)"/>
+    <!-- Ground -->
+    <rect x="0" y="130" width="120" height="38" rx="0" fill="rgba(8,38,10,0.78)"/>
+    <!-- Layered organic canopy shapes — bezier ovals, 3 layers -->
+    <path d="M 6,82 Q 8,52 22,42 Q 38,32 55,40 Q 62,36 68,40 Q 82,32 98,42 Q 112,52 114,82 Z" fill="rgba(18,72,20,0.88)"/>
+    <path d="M 14,82 Q 16,58 28,50 Q 44,42 60,48 Q 76,42 92,50 Q 104,58 106,82 Z" fill="rgba(26,88,28,0.80)"/>
+    <path d="M 22,82 Q 24,64 34,58 Q 48,52 60,56 Q 72,52 86,58 Q 96,64 98,82 Z" fill="rgba(34,104,36,0.72)"/>
+    <!-- Hanging roots -->
+    <line x1="14" y1="130" x2="14" y2="84" stroke="rgba(18,55,14,0.58)" stroke-width="1.2"/>
+    <line x1="26" y1="130" x2="26" y2="80" stroke="rgba(18,55,14,0.62)" stroke-width="1.0"/>
+    <line x1="40" y1="130" x2="40" y2="75" stroke="rgba(18,55,14,0.68)" stroke-width="1.2"/>
+    <line x1="80" y1="130" x2="80" y2="75" stroke="rgba(18,55,14,0.68)" stroke-width="1.2"/>
+    <line x1="94" y1="130" x2="94" y2="80" stroke="rgba(18,55,14,0.62)" stroke-width="1.0"/>
+    <line x1="106" y1="130" x2="106" y2="84" stroke="rgba(18,55,14,0.58)" stroke-width="1.2"/>
+    <!-- Leaf clusters -->
+    ${Array.from({length:8},(_,i)=>{const x=10+i*14,y=52+Math.sin(i*1.4)*7;return`<ellipse cx="${x}" cy="${y}" rx="5" ry="3" transform="rotate(${i*14-25} ${x} ${y})" fill="rgba(48,140,52,0.58)"/>`;}).join('')}
+    <ellipse cx="60" cy="132" rx="52" ry="7" fill="rgba(22,65,18,0.55)"/>
+  </g>
 </svg>`
   },
 
-  // 6. Mycelium
+  // 6. Mycelium — bioluminescence in dark soil
   { cat:'forest', label:'Mycelium',
     art: (() => {
       const N=[
@@ -470,51 +667,67 @@ const CARDS = [
       }
       return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="my-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#070318"/><stop offset="100%" stop-color="#020108"/></radialGradient>
-    <radialGradient id="my-glow" cx="50%" cy="50%" r="55%"><stop offset="0%" stop-color="#5818cc" stop-opacity=".30"/><stop offset="100%" stop-color="#1a0060" stop-opacity="0"/></radialGradient>
+    <radialGradient id="my-bgr" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#070318"/>
+      <stop offset="100%" stop-color="#020108"/>
+    </radialGradient>
+    <filter id="my-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="my-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="my-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#my-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#my-glow)"/>
-  ${lines}${dots}
+  <rect width="120" height="168" rx="12" fill="url(#my-bgr)"/>
+  <g clip-path="url(#my-clip)">
+    <!-- Blurred purple ellipses at hub nodes — bioluminescent glow -->
+    <ellipse cx="24" cy="88" rx="18" ry="18" fill="rgba(130,60,255,0.38)" filter="url(#my-soft)"/>
+    <ellipse cx="96" cy="76" rx="16" ry="16" fill="rgba(110,50,240,0.34)" filter="url(my-soft)"/>
+    <ellipse cx="38" cy="122" rx="14" ry="14" fill="rgba(150,70,255,0.30)" filter="url(#my-soft)"/>
+    <ellipse cx="60" cy="84" rx="12" ry="12" fill="rgba(140,80,255,0.32)" filter="url(#my-med)"/>
+    ${lines}${dots}
+  </g>
 </svg>`;
     })()
   },
 
-  // 7. Owl
-  { cat:'forest', label:'Owl',
+  // 7. Night Vigil — deep burnt umber nocturne, NO recognizable owl
+  { cat:'forest', label:'Night Vigil',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="ow-bg" cx="50%" cy="42%" r="76%"><stop offset="0%" stop-color="#1c0900"/><stop offset="100%" stop-color="#080400"/></radialGradient>
-    <radialGradient id="ow-moon" cx="50%" cy="18%" r="26%"><stop offset="0%" stop-color="#fff5d0" stop-opacity=".55"/><stop offset="100%" stop-color="#ffcc60" stop-opacity="0"/></radialGradient>
-    <radialGradient id="ow-el" cx="36%" cy="32%" r="58%"><stop offset="0%" stop-color="#ffe070"/><stop offset="52%" stop-color="#ff9800"/><stop offset="100%" stop-color="#c04800"/></radialGradient>
-    <radialGradient id="ow-er" cx="36%" cy="32%" r="58%"><stop offset="0%" stop-color="#ffe070"/><stop offset="52%" stop-color="#ff9800"/><stop offset="100%" stop-color="#c04800"/></radialGradient>
+    <radialGradient id="nv-bgr" cx="50%" cy="42%" r="76%">
+      <stop offset="0%" stop-color="#1c0900"/>
+      <stop offset="100%" stop-color="#080300"/>
+    </radialGradient>
+    <filter id="nv-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="nv-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="nv-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#ow-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#ow-moon)"/>
-  <circle cx="60" cy="28" r="20" fill="rgba(255,245,215,.20)" stroke="rgba(255,230,160,.28)" stroke-width=".8"/>
-  <circle cx="60" cy="28" r="13" fill="rgba(255,245,215,.12)"/>
-  <ellipse cx="60" cy="120" rx="24" ry="30" fill="rgba(42,18,5,.86)" stroke="rgba(140,75,18,.40)" stroke-width=".9"/>
-  <circle cx="60" cy="78" r="30" fill="rgba(46,20,6,.88)" stroke="rgba(150,80,20,.40)" stroke-width=".9"/>
-  <polygon points="46,50 41,34 53,48" fill="rgba(46,20,6,.92)" stroke="rgba(150,80,20,.48)" stroke-width=".8"/>
-  <polygon points="74,50 79,34 67,48" fill="rgba(46,20,6,.92)" stroke="rgba(150,80,20,.48)" stroke-width=".8"/>
-  <ellipse cx="60" cy="80" rx="23" ry="21" fill="rgba(68,30,9,.58)" stroke="rgba(168,95,28,.36)" stroke-width=".7"/>
-  <circle cx="48" cy="76" r="13" fill="url(#ow-el)" stroke="rgba(210,125,28,.58)" stroke-width="1.2"/>
-  <circle cx="48" cy="76" r="7.5" fill="rgba(180,88,10,.38)"/>
-  <circle cx="48" cy="76" r="5.5" fill="#060200"/>
-  <circle cx="45.5" cy="73.5" r="2.5" fill="rgba(255,255,255,.70)"/>
-  <circle cx="72" cy="76" r="13" fill="url(#ow-er)" stroke="rgba(210,125,28,.58)" stroke-width="1.2"/>
-  <circle cx="72" cy="76" r="7.5" fill="rgba(180,88,10,.38)"/>
-  <circle cx="72" cy="76" r="5.5" fill="#060200"/>
-  <circle cx="69.5" cy="73.5" r="2.5" fill="rgba(255,255,255,.70)"/>
-  <polygon points="60,83 55.5,91 64.5,91" fill="rgba(185,115,30,.72)"/>
-  ${Array.from({length:8},(_,i)=>{const y=104+i*7,xo=i%2?2:-2;return`<path d="M ${58+xo-12},${y} Q ${60+xo},${y-3} ${58+xo+12},${y}" fill="none" stroke="rgba(120,58,14,.24)" stroke-width=".7"/>`;}).join('')}
-  <rect x="8" y="142" width="104" height="9" rx="4.5" fill="rgba(28,12,3,.88)" stroke="rgba(100,52,16,.38)" stroke-width=".8"/>
-  <path d="M 46,142 Q 42,150 38,154 M 46,142 Q 46,152 44,156 M 46,142 Q 52,152 54,156" fill="none" stroke="rgba(80,38,9,.55)" stroke-width="1.0" stroke-linecap="round"/>
-  <path d="M 74,142 Q 70,150 66,154 M 74,142 Q 74,152 76,156 M 74,142 Q 78,150 82,154" fill="none" stroke="rgba(80,38,9,.55)" stroke-width="1.0" stroke-linecap="round"/>
+  <rect width="120" height="168" rx="12" fill="url(#nv-bgr)"/>
+  <g clip-path="url(#nv-clip)">
+    <!-- Large blurred amber circle — moon -->
+    <circle cx="60" cy="38" rx="38" r="38" fill="rgba(240,185,60,0.48)" filter="url(#nv-soft)"/>
+    <!-- Moon sharp -->
+    <circle cx="60" cy="38" r="22" fill="rgba(255,235,170,0.20)" stroke="rgba(240,210,120,0.30)" stroke-width="0.8"/>
+    <circle cx="60" cy="38" r="14" fill="rgba(255,240,185,0.14)"/>
+    <!-- Abstract dark painterly mass — rounded organic silhouette against moon -->
+    <ellipse cx="60" cy="110" rx="30" ry="38" fill="rgba(32,12,4,0.92)" filter="url(#nv-med)"/>
+    <ellipse cx="60" cy="92" rx="24" ry="20" fill="rgba(36,14,4,0.88)"/>
+    <!-- Upper rounded form — just a shape, not an owl -->
+    <ellipse cx="60" cy="76" rx="18" ry="16" fill="rgba(40,16,5,0.86)"/>
+    <!-- Two subtle bumps at top — purely abstract -->
+    <ellipse cx="50" cy="64" rx="8" ry="10" fill="rgba(38,14,4,0.82)"/>
+    <ellipse cx="70" cy="64" rx="8" ry="10" fill="rgba(38,14,4,0.82)"/>
+    <!-- Branch line -->
+    <rect x="4" y="128" width="112" height="9" rx="4.5" fill="rgba(24,10,2,0.90)" stroke="rgba(90,45,14,0.36)" stroke-width="0.8"/>
+    <!-- A few stars -->
+    <circle cx="18" cy="22" r="0.9" fill="rgba(255,235,180,0.52)"/>
+    <circle cx="92" cy="16" r="0.8" fill="rgba(255,235,180,0.46)"/>
+    <circle cx="108" cy="38" r="0.7" fill="rgba(255,235,180,0.38)"/>
+    <circle cx="14" cy="52" r="0.8" fill="rgba(255,235,180,0.40)"/>
+    <circle cx="104" cy="60" r="0.7" fill="rgba(255,235,180,0.36)"/>
+  </g>
 </svg>`
   },
 
-  // 8. Golden Spiral
+  // 8. Golden Spiral — warm sienna, phi mathematics
   { cat:'forest', label:'Golden Spiral',
     art: (() => {
       const phi=1.6180339887;
@@ -525,144 +738,226 @@ const CARDS = [
       }
       return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="gs-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#1c0c04"/><stop offset="100%" stop-color="#080500"/></radialGradient>
-    <radialGradient id="gs-gl" cx="50%" cy="50%" r="58%"><stop offset="0%" stop-color="#ff6633" stop-opacity=".24"/><stop offset="100%" stop-color="#cc2200" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gs-bgr" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1c0c04"/>
+      <stop offset="100%" stop-color="#080500"/>
+    </radialGradient>
+    <filter id="gs-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="gs-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="gs-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#gs-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#gs-gl)"/>
-  <rect x="28" y="52" width="64" height="64" fill="rgba(255,120,60,.07)" stroke="rgba(255,130,70,.38)" stroke-width=".8"/>
-  <rect x="28" y="52" width="40" height="40" fill="rgba(255,130,70,.06)" stroke="rgba(255,140,80,.32)" stroke-width=".7"/>
-  <rect x="68" y="52" width="24" height="24" fill="rgba(255,140,80,.06)" stroke="rgba(255,150,90,.28)" stroke-width=".6"/>
-  <rect x="68" y="76" width="16" height="16" fill="rgba(255,150,90,.06)" stroke="rgba(255,162,102,.25)" stroke-width=".55"/>
-  <rect x="68" y="76" width="10" height="10" fill="rgba(255,162,102,.06)" stroke="rgba(255,172,112,.22)" stroke-width=".5"/>
-  <rect x="68" y="82" width="6" height="6" fill="rgba(255,172,112,.07)" stroke="rgba(255,180,120,.20)" stroke-width=".45"/>
-  <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(255,138,78,.84)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="60" cy="84" r="3" fill="rgba(255,158,98,.58)"/>
-  <text x="60" y="153" text-anchor="middle" font-family="Georgia,serif" font-size="18" fill="rgba(255,138,70,.30)" font-style="italic">φ</text>
+  <rect width="120" height="168" rx="12" fill="url(#gs-bgr)"/>
+  <g clip-path="url(#gs-clip)">
+    <!-- Warm color field underpainting -->
+    <ellipse cx="60" cy="84" rx="60" ry="84" fill="rgba(180,70,20,0.28)" filter="url(#gs-soft)"/>
+    <!-- Blurred spiral brushstroke -->
+    <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(220,110,55,0.55)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" filter="url(#gs-med)"/>
+    <!-- Fibonacci rectangle color fields -->
+    <rect x="28" y="52" width="64" height="64" fill="rgba(200,95,40,0.07)" stroke="rgba(210,115,60,0.35)" stroke-width="0.8"/>
+    <rect x="28" y="52" width="40" height="40" fill="rgba(210,105,45,0.06)" stroke="rgba(220,125,65,0.30)" stroke-width="0.7"/>
+    <rect x="68" y="52" width="24" height="24" fill="rgba(215,115,50,0.06)" stroke="rgba(225,135,70,0.26)" stroke-width="0.6"/>
+    <rect x="68" y="76" width="16" height="16" fill="rgba(220,125,55,0.06)" stroke="rgba(230,145,80,0.22)" stroke-width="0.55"/>
+    <rect x="68" y="76" width="10" height="10" fill="rgba(225,135,60,0.06)" stroke="rgba(235,155,90,0.20)" stroke-width="0.5"/>
+    <rect x="68" y="82" width="6" height="6" fill="rgba(230,145,65,0.07)" stroke="rgba(240,162,98,0.18)" stroke-width="0.45"/>
+    <!-- Sharp spiral on top -->
+    <polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="rgba(230,128,68,0.86)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="60" cy="84" r="3" fill="rgba(240,148,88,0.60)"/>
+    <text x="60" y="153" text-anchor="middle" font-family="Georgia,serif" font-size="18" fill="rgba(220,128,60,0.28)" font-style="italic">φ</text>
+  </g>
 </svg>`;
     })()
   },
 
-  // 9. Sunflower
+  // 9. Sunflower — Van Gogh intensity, color over form
   { cat:'garden', label:'Sunflower',
     art: (() => {
       const outerPetals = Array.from({length:16},(_,i)=>{
         const a=i*Math.PI*2/16, r=32, px=(60+Math.cos(a)*r).toFixed(1), py=(80+Math.sin(a)*r).toFixed(1);
-        return `<ellipse cx="${px}" cy="${py}" rx="5.5" ry="14" transform="rotate(${(i*22.5).toFixed(1)} ${px} ${py})" fill="rgba(255,190,18,.85)" stroke="rgba(220,148,8,.45)" stroke-width=".6"/>`;
-      }).join('');
-      const innerPetals = Array.from({length:10},(_,i)=>{
-        const a=i*Math.PI*2/10+Math.PI/10, r=20, px=(60+Math.cos(a)*r).toFixed(1), py=(80+Math.sin(a)*r).toFixed(1);
-        return `<ellipse cx="${px}" cy="${py}" rx="3.8" ry="8.5" transform="rotate(${(i*36+18).toFixed(1)} ${px} ${py})" fill="rgba(210,138,8,.52)" stroke="rgba(175,105,6,.32)" stroke-width=".5"/>`;
+        return `<ellipse cx="${px}" cy="${py}" rx="5.5" ry="14" transform="rotate(${(i*22.5).toFixed(1)} ${px} ${py})" fill="rgba(255,195,18,0.88)" stroke="rgba(220,148,8,0.48)" stroke-width="0.6"/>`;
       }).join('');
       const seeds = Array.from({length:42},(_,i)=>{
         const a=i*2.399963, r=2.8*Math.sqrt(i);
         if(r>15.5) return '';
-        return `<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(80+Math.sin(a)*r).toFixed(1)}" r="${Math.max(0.8,1.2-i*0.01).toFixed(1)}" fill="rgba(155,75,18,.68)"/>`;
+        return `<circle cx="${(60+Math.cos(a)*r).toFixed(1)}" cy="${(80+Math.sin(a)*r).toFixed(1)}" r="${Math.max(0.8,1.2-i*0.01).toFixed(1)}" fill="rgba(155,75,18,0.68)"/>`;
       }).join('');
       return `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="sf-bg" cx="50%" cy="78%" r="80%"><stop offset="0%" stop-color="#0c0900"/><stop offset="100%" stop-color="#040300"/></radialGradient>
-    <radialGradient id="sf-sky" cx="50%" cy="18%" r="55%"><stop offset="0%" stop-color="#664400" stop-opacity=".55"/><stop offset="100%" stop-color="#220e00" stop-opacity="0"/></radialGradient>
+    <radialGradient id="sl-bgr" cx="50%" cy="78%" r="80%">
+      <stop offset="0%" stop-color="#0c0900"/>
+      <stop offset="100%" stop-color="#040300"/>
+    </radialGradient>
+    <filter id="sl-soft"><feGaussianBlur stdDeviation="14"/></filter>
+    <filter id="sl-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="sl-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#sf-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#sf-sky)"/>
-  <line x1="60" y1="106" x2="60" y2="158" stroke="rgba(38,95,18,.72)" stroke-width="2.8" stroke-linecap="round"/>
-  <path d="M 58,130 Q 28,118 26,104 Q 40,110 58,122" fill="rgba(38,95,20,.60)" stroke="rgba(48,118,22,.42)" stroke-width=".8"/>
-  <path d="M 62,140 Q 92,128 94,114 Q 80,120 62,132" fill="rgba(38,95,20,.55)" stroke="rgba(48,118,22,.42)" stroke-width=".8"/>
-  ${outerPetals}${innerPetals}
-  <circle cx="60" cy="80" r="19" fill="rgba(28,12,2,.94)" stroke="rgba(98,50,8,.52)" stroke-width="1.1"/>
-  <circle cx="60" cy="80" r="16" fill="none" stroke="rgba(80,38,5,.38)" stroke-width=".7"/>
-  ${seeds}
-  <circle cx="60" cy="80" r="4" fill="rgba(75,32,4,.85)"/>
+  <rect width="120" height="168" rx="12" fill="url(#sl-bgr)"/>
+  <g clip-path="url(#sl-clip)">
+    <!-- MASSIVE blurred yellow-gold central explosion -->
+    <ellipse cx="60" cy="80" rx="55" ry="55" fill="rgba(255,195,18,0.62)" filter="url(#sl-soft)"/>
+    <!-- Stem -->
+    <line x1="60" y1="106" x2="60" y2="158" stroke="rgba(38,95,18,0.72)" stroke-width="2.8" stroke-linecap="round"/>
+    <!-- Leaves -->
+    <path d="M 58,130 Q 28,118 26,104 Q 40,110 58,122" fill="rgba(38,95,20,0.60)" stroke="rgba(48,118,22,0.42)" stroke-width="0.8"/>
+    <path d="M 62,140 Q 92,128 94,114 Q 80,120 62,132" fill="rgba(38,95,20,0.55)" stroke="rgba(48,118,22,0.42)" stroke-width="0.8"/>
+    <!-- 16 filled yellow petal ellipses radiating -->
+    ${outerPetals}
+    <!-- Dark seed center circle -->
+    <circle cx="60" cy="80" r="19" fill="rgba(28,12,2,0.94)" stroke="rgba(98,50,8,0.52)" stroke-width="1.1"/>
+    <circle cx="60" cy="80" r="16" fill="none" stroke="rgba(80,38,5,0.38)" stroke-width="0.7"/>
+    <!-- Fibonacci seed dots -->
+    ${seeds}
+    <circle cx="60" cy="80" r="4" fill="rgba(75,32,4,0.88)"/>
+  </g>
 </svg>`;
     })()
   },
 
-  // 10. Butterfly
+  // 10. Butterfly — Kandinsky abstract color field, NOT illustration
   { cat:'garden', label:'Butterfly',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="bf-bg" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="#0e0022"/><stop offset="100%" stop-color="#040009"/></radialGradient>
-    <radialGradient id="bf-gl" cx="50%" cy="52%" r="62%"><stop offset="0%" stop-color="#cc00ff" stop-opacity=".26"/><stop offset="100%" stop-color="#5500aa" stop-opacity="0"/></radialGradient>
-    <radialGradient id="bf-wul" cx="28%" cy="28%" r="72%"><stop offset="0%" stop-color="#ff44dd"/><stop offset="50%" stop-color="#8800cc"/><stop offset="100%" stop-color="#30006a" stop-opacity=".92"/></radialGradient>
-    <radialGradient id="bf-wur" cx="72%" cy="28%" r="72%"><stop offset="0%" stop-color="#ff44dd"/><stop offset="50%" stop-color="#8800cc"/><stop offset="100%" stop-color="#30006a" stop-opacity=".92"/></radialGradient>
-    <radialGradient id="bf-wll" cx="24%" cy="62%" r="66%"><stop offset="0%" stop-color="#cc22ff"/><stop offset="100%" stop-color="#1e0055" stop-opacity=".88"/></radialGradient>
-    <radialGradient id="bf-wlr" cx="76%" cy="62%" r="66%"><stop offset="0%" stop-color="#cc22ff"/><stop offset="100%" stop-color="#1e0055" stop-opacity=".88"/></radialGradient>
+    <radialGradient id="bf-bgr" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0e0022"/>
+      <stop offset="100%" stop-color="#040009"/>
+    </radialGradient>
+    <filter id="bf-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="bf-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <radialGradient id="bf-wul" cx="28%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#ff44dd"/>
+      <stop offset="50%" stop-color="#8800cc"/>
+      <stop offset="100%" stop-color="#30006a" stop-opacity="0.92"/>
+    </radialGradient>
+    <radialGradient id="bf-wur" cx="72%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#ff44dd"/>
+      <stop offset="50%" stop-color="#8800cc"/>
+      <stop offset="100%" stop-color="#30006a" stop-opacity="0.92"/>
+    </radialGradient>
+    <radialGradient id="bf-wll" cx="24%" cy="62%" r="66%">
+      <stop offset="0%" stop-color="#cc22ff"/>
+      <stop offset="100%" stop-color="#1e0055" stop-opacity="0.88"/>
+    </radialGradient>
+    <radialGradient id="bf-wlr" cx="76%" cy="62%" r="66%">
+      <stop offset="0%" stop-color="#cc22ff"/>
+      <stop offset="100%" stop-color="#1e0055" stop-opacity="0.88"/>
+    </radialGradient>
+    <clipPath id="bf-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#bf-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#bf-gl)"/>
-  <path d="M 60,84 C 54,60 26,38 12,52 C 2,64 8,88 26,96 C 40,102 56,91 60,84" fill="url(#bf-wul)" stroke="rgba(255,100,220,.58)" stroke-width=".9"/>
-  <path d="M 60,84 C 66,60 94,38 108,52 C 118,64 112,88 94,96 C 80,102 64,91 60,84" fill="url(#bf-wur)" stroke="rgba(255,100,220,.58)" stroke-width=".9"/>
-  <path d="M 60,92 C 55,98 34,102 22,118 C 14,132 22,148 37,144 C 52,140 60,114 60,95" fill="url(#bf-wll)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
-  <path d="M 60,92 C 65,98 86,102 98,118 C 106,132 98,148 83,144 C 68,140 60,114 60,95" fill="url(#bf-wlr)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
-  <path d="M 60,84 C 48,74 32,60 20,62" fill="none" stroke="rgba(255,155,238,.26)" stroke-width=".7"/>
-  <path d="M 60,86 C 46,82 34,80 20,78" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
-  <path d="M 60,88 C 50,88 38,92 28,98" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
-  <path d="M 60,84 C 72,74 88,60 100,62" fill="none" stroke="rgba(255,155,238,.26)" stroke-width=".7"/>
-  <path d="M 60,86 C 74,82 86,80 100,78" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
-  <path d="M 60,88 C 70,88 82,92 92,98" fill="none" stroke="rgba(255,155,238,.18)" stroke-width=".6"/>
-  <circle cx="30" cy="70" r="7.5" fill="rgba(255,200,255,.18)" stroke="rgba(255,138,238,.48)" stroke-width=".8"/>
-  <circle cx="30" cy="70" r="4.5" fill="rgba(255,80,220,.35)"/>
-  <circle cx="30" cy="70" r="2.2" fill="rgba(255,220,255,.58)"/>
-  <circle cx="90" cy="70" r="7.5" fill="rgba(255,200,255,.18)" stroke="rgba(255,138,238,.48)" stroke-width=".8"/>
-  <circle cx="90" cy="70" r="4.5" fill="rgba(255,80,220,.35)"/>
-  <circle cx="90" cy="70" r="2.2" fill="rgba(255,220,255,.58)"/>
-  <ellipse cx="60" cy="92" rx="3.8" ry="18" fill="rgba(48,0,80,.88)" stroke="rgba(200,80,255,.52)" stroke-width=".8"/>
-  <circle cx="60" cy="74" r="5" fill="rgba(58,0,90,.88)" stroke="rgba(200,80,255,.48)" stroke-width=".8"/>
-  <path d="M 60,70 C 54,56 46,44 42,36" fill="none" stroke="rgba(200,100,255,.58)" stroke-width=".9" stroke-linecap="round"/>
-  <circle cx="42" cy="36" r="2.5" fill="rgba(220,120,255,.72)"/>
-  <path d="M 60,70 C 66,56 74,44 78,36" fill="none" stroke="rgba(200,100,255,.58)" stroke-width=".9" stroke-linecap="round"/>
-  <circle cx="78" cy="36" r="2.5" fill="rgba(220,120,255,.72)"/>
+  <rect width="120" height="168" rx="12" fill="url(#bf-bgr)"/>
+  <g clip-path="url(#bf-clip)">
+    <!-- Two LARGE blurred magenta/purple ellipses as upper wings — abstract color field -->
+    <ellipse cx="34" cy="68" rx="42" ry="38" fill="rgba(220,30,200,0.52)" filter="url(#bf-soft)"/>
+    <ellipse cx="86" cy="68" rx="42" ry="38" fill="rgba(200,20,220,0.52)" filter="url(#bf-soft)"/>
+    <!-- Two smaller violet blobs below -->
+    <ellipse cx="32" cy="118" rx="26" ry="22" fill="rgba(160,20,230,0.38)" filter="url(#bf-med)"/>
+    <ellipse cx="88" cy="118" rx="26" ry="22" fill="rgba(170,15,220,0.38)" filter="url(#bf-med)"/>
+    <!-- Wing shapes -->
+    <path d="M 60,84 C 54,60 26,38 12,52 C 2,64 8,88 26,96 C 40,102 56,91 60,84" fill="url(#bf-wul)" stroke="rgba(255,100,220,0.55)" stroke-width="0.9"/>
+    <path d="M 60,84 C 66,60 94,38 108,52 C 118,64 112,88 94,96 C 80,102 64,91 60,84" fill="url(#bf-wur)" stroke="rgba(255,100,220,0.55)" stroke-width="0.9"/>
+    <path d="M 60,92 C 55,98 34,102 22,118 C 14,132 22,148 37,144 C 52,140 60,114 60,95" fill="url(#bf-wll)" stroke="rgba(200,80,255,0.50)" stroke-width="0.8"/>
+    <path d="M 60,92 C 65,98 86,102 98,118 C 106,132 98,148 83,144 C 68,140 60,114 60,95" fill="url(#bf-wlr)" stroke="rgba(200,80,255,0.50)" stroke-width="0.8"/>
+    <!-- Wing veins — faint -->
+    <path d="M 60,84 C 48,74 32,60 20,62" fill="none" stroke="rgba(255,155,238,0.24)" stroke-width="0.7"/>
+    <path d="M 60,86 C 46,82 34,80 20,78" fill="none" stroke="rgba(255,155,238,0.16)" stroke-width="0.6"/>
+    <path d="M 60,84 C 72,74 88,60 100,62" fill="none" stroke="rgba(255,155,238,0.24)" stroke-width="0.7"/>
+    <path d="M 60,86 C 74,82 86,80 100,78" fill="none" stroke="rgba(255,155,238,0.16)" stroke-width="0.6"/>
+    <!-- Eyespot circles -->
+    <circle cx="30" cy="70" r="7.5" fill="rgba(255,200,255,0.16)" stroke="rgba(255,138,238,0.46)" stroke-width="0.8"/>
+    <circle cx="30" cy="70" r="4.5" fill="rgba(255,80,220,0.32)"/>
+    <circle cx="30" cy="70" r="2.2" fill="rgba(255,220,255,0.56)"/>
+    <circle cx="90" cy="70" r="7.5" fill="rgba(255,200,255,0.16)" stroke="rgba(255,138,238,0.46)" stroke-width="0.8"/>
+    <circle cx="90" cy="70" r="4.5" fill="rgba(255,80,220,0.32)"/>
+    <circle cx="90" cy="70" r="2.2" fill="rgba(255,220,255,0.56)"/>
+    <!-- Body line -->
+    <ellipse cx="60" cy="92" rx="3.8" ry="18" fill="rgba(48,0,80,0.90)" stroke="rgba(200,80,255,0.50)" stroke-width="0.8"/>
+    <circle cx="60" cy="74" r="5" fill="rgba(58,0,90,0.90)" stroke="rgba(200,80,255,0.46)" stroke-width="0.8"/>
+    <!-- Antennae -->
+    <path d="M 60,70 C 54,56 46,44 42,36" fill="none" stroke="rgba(200,100,255,0.56)" stroke-width="0.9" stroke-linecap="round"/>
+    <circle cx="42" cy="36" r="2.5" fill="rgba(220,120,255,0.72)"/>
+    <path d="M 60,70 C 66,56 74,44 78,36" fill="none" stroke="rgba(200,100,255,0.56)" stroke-width="0.9" stroke-linecap="round"/>
+    <circle cx="78" cy="36" r="2.5" fill="rgba(220,120,255,0.72)"/>
+  </g>
 </svg>`
   },
 
-  // 11. Thesis
+  // 11. Thesis — deep navy, bottleneck gold hub
   { cat:'core', label:'Thesis', textClass:'serif',
     text:'"The money is made owning bottlenecks, not end products."',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="th-bg" cx="50%" cy="38%" r="70%"><stop offset="0%" stop-color="#03070f"/><stop offset="100%" stop-color="#010205"/></radialGradient>
-    <radialGradient id="th-hub" cx="50%" cy="38%" r="56%"><stop offset="0%" stop-color="#ff9900" stop-opacity=".32"/><stop offset="100%" stop-color="#cc5500" stop-opacity="0"/></radialGradient>
+    <radialGradient id="th-bgr" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#03070f"/>
+      <stop offset="100%" stop-color="#010205"/>
+    </radialGradient>
+    <filter id="th-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="th-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <clipPath id="th-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#th-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#th-hub)"/>
-  ${Array.from({length:6},(_,i)=>{
-    const a=i*Math.PI/3-Math.PI/6, r=40, nx=(60+Math.cos(a)*r).toFixed(1), ny=(58+Math.sin(a)*r).toFixed(1);
-    return `<line x1="${nx}" y1="${ny}" x2="60" y2="58" stroke="rgba(100,160,255,.20)" stroke-width=".8"/>
-    <circle cx="${nx}" cy="${ny}" r="6" fill="rgba(55,115,220,.22)" stroke="rgba(100,170,255,.52)" stroke-width=".9"/>
-    <circle cx="${nx}" cy="${ny}" r="3" fill="rgba(140,192,255,.44)"/>`;
-  }).join('')}
-  ${[[0,2],[1,3],[2,4],[3,5],[4,0],[5,1]].map(([a,b])=>{
-    const ra=a*Math.PI/3-Math.PI/6, rb=b*Math.PI/3-Math.PI/6, r=40;
-    return `<line x1="${(60+Math.cos(ra)*r).toFixed(1)}" y1="${(58+Math.sin(ra)*r).toFixed(1)}" x2="${(60+Math.cos(rb)*r).toFixed(1)}" y2="${(58+Math.sin(rb)*r).toFixed(1)}" stroke="rgba(80,130,220,.11)" stroke-width=".6"/>`;
-  }).join('')}
-  <circle cx="60" cy="58" r="14" fill="rgba(200,98,8,.24)" stroke="rgba(255,168,38,.68)" stroke-width="1.2"/>
-  <circle cx="60" cy="58" r="8" fill="rgba(255,148,28,.40)"/>
-  <circle cx="60" cy="58" r="4" fill="rgba(255,210,100,.72)"/>
+  <rect width="120" height="168" rx="12" fill="url(#th-bgr)"/>
+  <g clip-path="url(#th-clip)">
+    <!-- Subtle gold glow blob at center — the bottleneck -->
+    <ellipse cx="60" cy="58" rx="40" ry="40" fill="rgba(200,100,10,0.30)" filter="url(#th-soft)"/>
+    <!-- Blurred hub -->
+    <circle cx="60" cy="58" r="20" fill="rgba(230,140,20,0.25)" filter="url(#th-med)"/>
+    <!-- Network: 6 outer nodes + center hub, all edges -->
+    ${Array.from({length:6},(_,i)=>{
+      const a=i*Math.PI/3-Math.PI/6, r=40, nx=(60+Math.cos(a)*r).toFixed(1), ny=(58+Math.sin(a)*r).toFixed(1);
+      return `<line x1="${nx}" y1="${ny}" x2="60" y2="58" stroke="rgba(100,160,255,0.20)" stroke-width="0.8"/>
+    <circle cx="${nx}" cy="${ny}" r="6" fill="rgba(55,115,220,0.22)" stroke="rgba(100,170,255,0.52)" stroke-width="0.9"/>
+    <circle cx="${nx}" cy="${ny}" r="3" fill="rgba(140,192,255,0.44)"/>`;
+    }).join('')}
+    ${[[0,2],[1,3],[2,4],[3,5],[4,0],[5,1]].map(([a,b])=>{
+      const ra=a*Math.PI/3-Math.PI/6, rb=b*Math.PI/3-Math.PI/6, r=40;
+      return `<line x1="${(60+Math.cos(ra)*r).toFixed(1)}" y1="${(58+Math.sin(ra)*r).toFixed(1)}" x2="${(60+Math.cos(rb)*r).toFixed(1)}" y2="${(58+Math.sin(rb)*r).toFixed(1)}" stroke="rgba(80,130,220,0.11)" stroke-width="0.6"/>`;
+    }).join('')}
+    <!-- Gold hub brightly lit -->
+    <circle cx="60" cy="58" r="14" fill="rgba(200,98,8,0.22)" stroke="rgba(255,168,38,0.70)" stroke-width="1.2"/>
+    <circle cx="60" cy="58" r="8" fill="rgba(255,148,28,0.42)"/>
+    <circle cx="60" cy="58" r="4" fill="rgba(255,210,100,0.76)"/>
+  </g>
 </svg>`
   },
 
-  // 12. Consciousness
+  // 12. Consciousness — cosmic black, ice-cyan galaxy
   { cat:'core', label:'Consciousness', textClass:'mono',
     text:'LEVEL 32.25\n\nCOSMIC\nTRANSCENDENCE',
     art: `<svg viewBox="0 0 120 168" width="120" height="168" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="cn-bg" cx="50%" cy="40%" r="70%"><stop offset="0%" stop-color="#020409"/><stop offset="100%" stop-color="#010203"/></radialGradient>
-    <radialGradient id="cn-glow" cx="50%" cy="40%" r="56%"><stop offset="0%" stop-color="#00ffff" stop-opacity=".17"/><stop offset="52%" stop-color="#0040aa" stop-opacity=".10"/><stop offset="100%" stop-color="#001130" stop-opacity="0"/></radialGradient>
+    <radialGradient id="cn-bgr" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#020409"/>
+      <stop offset="100%" stop-color="#010203"/>
+    </radialGradient>
+    <filter id="cn-soft"><feGaussianBlur stdDeviation="10"/></filter>
+    <filter id="cn-med"><feGaussianBlur stdDeviation="4"/></filter>
+    <radialGradient id="cn-glow" cx="50%" cy="40%" r="56%">
+      <stop offset="0%" stop-color="#00ffff" stop-opacity="0.17"/>
+      <stop offset="52%" stop-color="#0040aa" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#001130" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="cn-clip"><rect width="120" height="168" rx="12"/></clipPath>
   </defs>
-  <rect width="120" height="168" rx="12" fill="url(#cn-bg)"/>
-  <rect width="120" height="168" rx="12" fill="url(#cn-glow)"/>
-  <circle cx="60" cy="62" r="48" fill="none" stroke="rgba(180,255,255,.08)" stroke-width=".8"/>
-  <circle cx="60" cy="62" r="38" fill="none" stroke="rgba(160,240,255,.13)" stroke-width=".9"/>
-  <circle cx="60" cy="62" r="28" fill="none" stroke="rgba(140,220,255,.18)" stroke-width=".9"/>
-  <circle cx="60" cy="62" r="18" fill="none" stroke="rgba(120,200,255,.24)" stroke-width="1.0"/>
-  <circle cx="60" cy="62" r="10" fill="none" stroke="rgba(100,210,255,.30)" stroke-width="1.0"/>
-  ${Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return`<circle cx="${(60+Math.cos(a)*38).toFixed(1)}" cy="${(62+Math.sin(a)*38).toFixed(1)}" r="2.6" fill="rgba(178,240,255,.28)" stroke="rgba(200,250,255,.36)" stroke-width=".6"/>`;}).join('')}
-  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3+Math.PI/6;return`<circle cx="${(60+Math.cos(a)*22).toFixed(1)}" cy="${(62+Math.sin(a)*22).toFixed(1)}" r="2.0" fill="rgba(160,232,255,.36)" stroke="rgba(190,245,255,.44)" stroke-width=".6"/>`;}).join('')}
-  ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return`<line x1="60" y1="62" x2="${(60+Math.cos(a)*46).toFixed(1)}" y2="${(62+Math.sin(a)*46).toFixed(1)}" stroke="rgba(150,220,255,.08)" stroke-width=".6"/>`;}).join('')}
-  <circle cx="60" cy="62" r="6.5" fill="rgba(100,200,255,.20)" stroke="rgba(160,230,255,.42)" stroke-width=".8"/>
-  <circle cx="60" cy="62" r="3.5" fill="rgba(200,245,255,.55)"/>
-  <circle cx="60" cy="62" r="1.8" fill="rgba(240,255,255,.88)"/>
+  <rect width="120" height="168" rx="12" fill="url(#cn-bgr)"/>
+  <g clip-path="url(#cn-clip)">
+    <!-- Blurred ice-blue center core -->
+    <circle cx="60" cy="62" r="30" fill="rgba(0,220,255,0.22)" filter="url(#cn-soft)"/>
+    <circle cx="60" cy="62" r="14" fill="rgba(0,240,255,0.20)" filter="url(#cn-med)"/>
+    <rect width="120" height="168" rx="12" fill="url(#cn-glow)"/>
+    <!-- 5 concentric ring strokes — ice blue, each slightly brighter toward center -->
+    <circle cx="60" cy="62" r="48" fill="none" stroke="rgba(180,255,255,0.08)" stroke-width="0.8"/>
+    <circle cx="60" cy="62" r="38" fill="none" stroke="rgba(160,240,255,0.13)" stroke-width="0.9"/>
+    <circle cx="60" cy="62" r="28" fill="none" stroke="rgba(140,220,255,0.18)" stroke-width="0.9"/>
+    <circle cx="60" cy="62" r="18" fill="none" stroke="rgba(120,200,255,0.24)" stroke-width="1.0"/>
+    <circle cx="60" cy="62" r="10" fill="none" stroke="rgba(100,210,255,0.30)" stroke-width="1.0"/>
+    <!-- 12 node dots on outer ring -->
+    ${Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return`<circle cx="${(60+Math.cos(a)*38).toFixed(1)}" cy="${(62+Math.sin(a)*38).toFixed(1)}" r="2.6" fill="rgba(178,240,255,0.28)" stroke="rgba(200,250,255,0.36)" stroke-width="0.6"/>`;}).join('')}
+    <!-- 6 node dots on inner ring -->
+    ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3+Math.PI/6;return`<circle cx="${(60+Math.cos(a)*22).toFixed(1)}" cy="${(62+Math.sin(a)*22).toFixed(1)}" r="2.0" fill="rgba(160,232,255,0.36)" stroke="rgba(190,245,255,0.44)" stroke-width="0.6"/>`;}).join('')}
+    <!-- 6 radial spokes faint -->
+    ${Array.from({length:6},(_,i)=>{const a=i*Math.PI/3;return`<line x1="60" y1="62" x2="${(60+Math.cos(a)*46).toFixed(1)}" y2="${(62+Math.sin(a)*46).toFixed(1)}" stroke="rgba(150,220,255,0.08)" stroke-width="0.6"/>`;}).join('')}
+    <!-- Bright center core — 3 nested circles -->
+    <circle cx="60" cy="62" r="6.5" fill="rgba(100,200,255,0.20)" stroke="rgba(160,230,255,0.42)" stroke-width="0.8"/>
+    <circle cx="60" cy="62" r="3.5" fill="rgba(200,245,255,0.58)"/>
+    <circle cx="60" cy="62" r="1.8" fill="rgba(240,255,255,0.92)"/>
+  </g>
 </svg>`
   },
 ];
