@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Eudaimon — Art Cards</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 
@@ -21,14 +24,13 @@ body {
   background: rgba(255,255,255,0.85); border-radius: 50%;
   pointer-events: none; z-index: 9999;
   transform: translate(-50%,-50%);
-  transition: transform 0.08s, background 0.3s;
 }
 #cursor-ring {
   position: fixed; width: 36px; height: 36px;
   border: 1px solid rgba(255,255,255,0.22); border-radius: 50%;
   pointer-events: none; z-index: 9998;
   transform: translate(-50%,-50%);
-  transition: width 0.25s, height 0.25s, border-color 0.3s, transform 0.12s;
+  transition: width 0.22s, height 0.22s, border-color 0.3s;
 }
 
 /* ── Cards ── */
@@ -43,7 +45,8 @@ body {
   pointer-events: all;
   will-change: transform;
   overflow: hidden;
-  transition: border-color 0.4s;
+  transition: border-color 0.35s;
+  perspective: 600px;
 }
 .card::before {
   content: '';
@@ -52,222 +55,272 @@ body {
   border-radius: inherit; pointer-events: none;
 }
 .card.hovered { border-color: rgba(255,255,255,0.14); }
-.card.active  { border-color: rgba(255,255,255,0.28); }
+.card.grabbed { border-color: rgba(140,210,255,0.35); z-index: 500 !important; }
 
 .card-label {
   font-size: 8px; letter-spacing: 0.26em;
   color: rgba(255,255,255,0.18); text-transform: uppercase;
   font-family: 'Courier New', monospace; position: absolute;
-  bottom: 18px; left: 0; right: 0; text-align: center;
+  bottom: 16px; left: 0; right: 0; text-align: center;
 }
 .card-index {
   font-size: 7px; letter-spacing: 0.15em;
   color: rgba(255,255,255,0.08); font-family: 'Courier New', monospace;
   position: absolute; top: 14px; left: 16px;
 }
-
-/* ── Color field cards ── */
-.card-field {
-  position: absolute; inset: 0; border-radius: inherit;
-  opacity: 0.82;
-}
-
-/* ── Text cards ── */
 .card-text {
-  color: rgba(255,255,255,0.75); font-size: 12px;
+  color: rgba(255,255,255,0.72); font-size: 12px;
   line-height: 1.65; text-align: center; padding: 0 20px;
   letter-spacing: 0.04em;
 }
-.card-text.serif { font-family: 'Georgia', serif; font-style: italic; }
-.card-text.mono  { font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 0.1em; }
-
-/* ── Symbol cards ── */
+.card-text.serif { font-family:'Georgia',serif; font-style:italic; }
+.card-text.mono  { font-family:'Courier New',monospace; font-size:10px; letter-spacing:0.1em; }
 .card-symbol {
-  font-size: 42px; color: rgba(255,255,255,0.65);
+  font-size: 44px; color: rgba(255,255,255,0.65);
   line-height: 1; font-family: 'Georgia', serif;
 }
+.card-field { position: absolute; inset: 0; border-radius: inherit; opacity: 0.85; }
 
-/* ── Gesture hint ── */
-#hint {
-  position: fixed; bottom: 32px; left: 50%;
-  transform: translateX(-50%);
-  font-family: 'Courier New', monospace; font-size: 9px;
-  letter-spacing: 0.18em; color: rgba(255,255,255,0.18);
-  text-align: center; pointer-events: none;
-  transition: opacity 0.6s;
+/* ── Webcam pip ── */
+#cam-wrap {
+  position: fixed; bottom: 24px; right: 24px;
+  width: 200px; height: 150px;
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.07);
+  z-index: 200;
+  transition: opacity 0.5s;
 }
-#hint span { margin: 0 12px; }
+#cam-wrap:hover { opacity: 0.95 !important; }
+#cam-video {
+  position: absolute; width: 100%; height: 100%;
+  object-fit: cover; transform: scaleX(-1);
+  opacity: 0.55;
+}
+#cam-canvas {
+  position: absolute; width: 100%; height: 100%;
+  transform: scaleX(-1);
+}
+#cam-status {
+  position: absolute; top: 8px; left: 10px;
+  font-family: 'Courier New', monospace; font-size: 7px;
+  letter-spacing: 0.15em; color: rgba(255,255,255,0.35);
+}
+#cam-status .dot {
+  display: inline-block; width: 4px; height: 4px;
+  border-radius: 50%; background: rgba(100,220,100,0.7);
+  margin-right: 5px; vertical-align: middle;
+  animation: blink 1.4s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
 
-/* ── Mode indicator ── */
-#mode-indicator {
+/* ── Hand pointer overlay (full screen) ── */
+#hand-pointer {
+  position: fixed; pointer-events: none; z-index: 150;
+  width: 16px; height: 16px; border-radius: 50%;
+  transform: translate(-50%,-50%);
+  border: 1px solid rgba(140,210,255,0.5);
+  transition: width 0.15s, height 0.15s, border-color 0.2s;
+  display: none;
+}
+#hand-pointer::after {
+  content: '';
+  position: absolute; inset: 3px; border-radius: 50%;
+  background: rgba(140,210,255,0.25);
+}
+
+/* ── Gesture badge ── */
+#gesture-badge {
   position: fixed; top: 28px; right: 28px;
   font-family: 'Courier New', monospace; font-size: 9px;
-  letter-spacing: 0.22em; color: rgba(255,255,255,0.2);
+  letter-spacing: 0.22em; color: rgba(255,255,255,0.18);
   text-align: right; pointer-events: none;
+  transition: color 0.3s;
 }
-#mode-indicator .mode-val { color: rgba(255,255,255,0.5); }
+#gesture-badge .gval { color: rgba(140,210,255,0.6); }
 
 /* ── Wordmark ── */
 #wordmark {
-  position: fixed; top: 28px; left: 28px;
-  pointer-events: none;
+  position: fixed; top: 28px; left: 28px; pointer-events: none;
 }
 #wordmark h1 {
   font-size: 11px; font-weight: 400; letter-spacing: 0.32em;
   color: rgba(255,255,255,0.35); font-family: 'Courier New', monospace;
-  text-transform: uppercase;
 }
 #wordmark p {
   font-size: 8px; letter-spacing: 0.18em;
   color: rgba(255,255,255,0.1); margin-top: 4px;
   font-family: 'Courier New', monospace;
 }
+
+/* ── Arrangement label ── */
+#arr-label {
+  position: fixed; bottom: 28px; left: 28px;
+  font-family: 'Courier New', monospace; font-size: 8px;
+  letter-spacing: 0.2em; color: rgba(255,255,255,0.15);
+  pointer-events: none;
+}
+
+/* ── Permission overlay ── */
+#perm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px;
+  z-index: 1000; transition: opacity 0.6s;
+}
+#perm-overlay h2 {
+  font-family: 'Courier New', monospace; font-size: 11px;
+  letter-spacing: 0.28em; color: rgba(255,255,255,0.6);
+  font-weight: 400;
+}
+#perm-overlay p {
+  font-family: 'Courier New', monospace; font-size: 9px;
+  letter-spacing: 0.16em; color: rgba(255,255,255,0.25);
+}
+#perm-btn {
+  margin-top: 8px;
+  background: none; border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.5); font-family: 'Courier New', monospace;
+  font-size: 9px; letter-spacing: 0.2em; padding: 10px 28px;
+  border-radius: 4px; cursor: pointer; transition: all 0.25s;
+}
+#perm-btn:hover {
+  border-color: rgba(140,210,255,0.4); color: rgba(140,210,255,0.8);
+}
+#skip-btn {
+  background: none; border: none; cursor: pointer;
+  font-family: 'Courier New', monospace; font-size: 8px;
+  letter-spacing: 0.16em; color: rgba(255,255,255,0.15);
+}
+#skip-btn:hover { color: rgba(255,255,255,0.3); }
 </style>
 </head>
 <body>
 
+<!-- Permission overlay -->
+<div id="perm-overlay">
+  <h2>EUDAIMON</h2>
+  <p>Hand tracking requires camera access</p>
+  <button id="perm-btn">ENABLE CAMERA</button>
+  <button id="skip-btn">Continue without camera</button>
+</div>
+
 <div id="cursor"></div>
 <div id="cursor-ring"></div>
+<div id="hand-pointer"></div>
 
 <div id="wordmark">
   <h1>Eudaimon</h1>
   <p>Visual System · 2026</p>
 </div>
 
-<div id="mode-indicator">
-  ARRANGEMENT &nbsp;<span class="mode-val" id="modeVal">DRIFT</span>
+<div id="gesture-badge">
+  GESTURE &nbsp;<span class="gval" id="gval">—</span><br>
+  ARRANGEMENT &nbsp;<span class="gval" id="arrval">DRIFT</span>
 </div>
 
-<div id="hint">
-  <span>MOVE — cards follow</span>
-  <span>CLICK — scatter</span>
-  <span>HOLD — pull</span>
+<div id="arr-label">
+  SPACE scatter · DBL-CLICK cycle · 1-6 arrange
+</div>
+
+<!-- Webcam PIP -->
+<div id="cam-wrap" style="opacity:0">
+  <video id="cam-video" autoplay muted playsinline></video>
+  <canvas id="cam-canvas"></canvas>
+  <div id="cam-status"><span class="dot"></span>TRACKING</div>
 </div>
 
 <div id="stage"></div>
 
 <script>
-// ─── Setup ───────────────────────────────────────────────────────────────────
+const TAU = Math.PI * 2;
+let W = innerWidth, H = innerHeight, cx = W/2, cy = H/2;
 
-const stage = document.getElementById('stage');
-const cursor = document.getElementById('cursor');
-const ring   = document.getElementById('cursor-ring');
-const TAU    = Math.PI * 2;
+// ─── State ───────────────────────────────────────────────────────────────────
 
-let W = window.innerWidth, H = window.innerHeight;
-let cx = W/2, cy = H/2;
-
-const mouse  = { x: cx, y: cy, px: cx, py: cy, vx:0, vy:0, speed:0, down:false };
-let frame = 0, t = 0;
-let scatterT = 0;   // 0..1 scatter impulse
+const pointer = { x: cx, y: cy, px: cx, py: cy, vx:0, vy:0, speed:0 };
+let frame = 0, loopT = 0;
 let pullMode = false;
 let currentArrangement = 'drift';
+let grabbedCard = null;
+let handActive = false;
+let gestureHold = 0, lastGesture = 'none', committedGesture = 'none';
+let scatterImpulse = 0;
 
 // ─── Card definitions ────────────────────────────────────────────────────────
 
 const CARD_DEFS = [
-  // Sacred geometry SVGs
-  {
-    type: 'svg', label: 'Vesica Piscis',
-    svg: `<svg viewBox="-70 -50 140 100" width="88" height="62" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.8">
-      <circle cx="-18" cy="0" r="36"/>
-      <circle cx="18"  cy="0" r="36"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Flower of Life',
-    svg: `<svg viewBox="-70 -70 140 140" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.7">
-      <circle cx="0"   cy="0"   r="22"/>
-      <circle cx="0"   cy="-22" r="22"/>
-      <circle cx="0"   cy="22"  r="22"/>
-      <circle cx="19"  cy="-11" r="22"/>
-      <circle cx="19"  cy="11"  r="22"/>
-      <circle cx="-19" cy="-11" r="22"/>
-      <circle cx="-19" cy="11"  r="22"/>
-      <circle cx="0"   cy="0"   r="44" opacity="0.3"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: "Metatron's Cube",
-    svg: `<svg viewBox="-70 -70 140 140" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.65">
-      ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`<circle cx="${(Math.cos(a)*34).toFixed(1)}" cy="${(Math.sin(a)*34).toFixed(1)}" r="34"/>`}).join('')}
-      <circle cx="0" cy="0" r="34"/>
-      <polygon points="${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`${(Math.cos(a)*34).toFixed(1)},${(Math.sin(a)*34).toFixed(1)}`}).join(' ')}" stroke-width="0.5"/>
-      <polygon points="${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6+TAU/12;return`${(Math.cos(a)*34).toFixed(1)},${(Math.sin(a)*34).toFixed(1)}`}).join(' ')}" stroke-width="0.5"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Sri Yantra',
-    svg: `<svg viewBox="-60 -60 120 120" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
-      ${[38,28,20,13].map((r,i)=>`<polygon points="${[0,1,2].map(k=>{const a=(i%2===0?-TAU/12:TAU/12)+k*TAU/3;return`${(Math.cos(a)*r).toFixed(1)},${(Math.sin(a)*r).toFixed(1)}`}).join(' ')}"/>`).join('')}
-      <circle cx="0" cy="0" r="3" fill="rgba(255,255,255,0.3)" stroke="none"/>
-      <circle cx="0" cy="0" r="52" stroke-width="0.4" opacity="0.3"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Golden Ratio',
-    svg: `<svg viewBox="-55 -55 110 110" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.7">
-      <rect x="-50" y="-31" width="50" height="50" rx="0.5"/>
-      <rect x="0"   y="-31" width="31" height="31" rx="0.5"/>
-      <rect x="0"   y="0"   width="31" height="19" rx="0.5"/>
-      <rect x="0"   y="19"  width="19" height="12" rx="0.5"/>
-      <path d="M -50,-31 Q -50,19 0,19" stroke-width="0.9" opacity="0.8"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Torus',
-    svg: `<svg viewBox="-60 -60 120 120" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.7">
-      <ellipse cx="0" cy="0" rx="52" ry="28"/>
-      <ellipse cx="0" cy="0" rx="52" ry="52" opacity="0.25"/>
+  { type:'svg', label:'Vesica Piscis',
+    svg:`<svg viewBox="-70 -50 140 100" width="88" height="62" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.8">
+      <circle cx="-18" cy="0" r="36"/><circle cx="18" cy="0" r="36"/></svg>` },
+  { type:'svg', label:'Flower of Life',
+    svg:`<svg viewBox="-70 -70 140 140" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.42)" stroke-width="0.7">
+      <circle cx="0" cy="0" r="22"/><circle cx="0" cy="-22" r="22"/>
+      <circle cx="0" cy="22" r="22"/><circle cx="19" cy="-11" r="22"/>
+      <circle cx="19" cy="11" r="22"/><circle cx="-19" cy="-11" r="22"/>
+      <circle cx="-19" cy="11" r="22"/>
+      <circle cx="0" cy="0" r="44" opacity="0.25"/></svg>` },
+  { type:'svg', label:"Metatron's Cube",
+    svg:`<svg viewBox="-72 -72 144 144" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.38)" stroke-width="0.65">
+      ${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6,r=36;return`<circle cx="${+(Math.cos(a)*r).toFixed(1)}" cy="${+(Math.sin(a)*r).toFixed(1)}" r="${r}"/>`}).join('')}
+      <circle cx="0" cy="0" r="36"/>
+      <polygon points="${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6;return`${+(Math.cos(a)*36).toFixed(1)},${+(Math.sin(a)*36).toFixed(1)}`}).join(' ')}" stroke-width="0.5"/>
+      <polygon points="${[0,1,2,3,4,5].map(i=>{const a=i*TAU/6+TAU/12;return`${+(Math.cos(a)*36).toFixed(1)},${+(Math.sin(a)*36).toFixed(1)}`}).join(' ')}" stroke-width="0.5"/>
+    </svg>` },
+  { type:'svg', label:'Sri Yantra',
+    svg:`<svg viewBox="-62 -62 124 124" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
+      ${[38,28,20,13].map((r,i)=>`<polygon points="${[0,1,2].map(k=>{const a=(i%2===0?-TAU/12:TAU/12)+k*TAU/3;return`${+(Math.cos(a)*r).toFixed(1)},${+(Math.sin(a)*r).toFixed(1)}`}).join(' ')}"/>`).join('')}
+      <circle cx="0" cy="0" r="3" fill="rgba(255,255,255,0.35)" stroke="none"/>
+      <circle cx="0" cy="0" r="54" stroke-width="0.4" opacity="0.25"/></svg>` },
+  { type:'svg', label:'Torus',
+    svg:`<svg viewBox="-62 -62 124 124" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="0.7">
+      <ellipse cx="0" cy="0" rx="54" ry="28"/>
+      <ellipse cx="0" cy="0" rx="54" ry="54" opacity="0.2"/>
       <ellipse cx="0" cy="0" rx="20" ry="28"/>
-      <ellipse cx="0" cy="-14" rx="32" ry="14" opacity="0.5"/>
-      <ellipse cx="0" cy="14"  rx="32" ry="14" opacity="0.5"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Fibonacci',
-    svg: `<svg viewBox="-55 -55 110 110" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
+      <ellipse cx="0" cy="-14" rx="34" ry="14" opacity="0.45"/>
+      <ellipse cx="0" cy="14" rx="34" ry="14" opacity="0.45"/></svg>` },
+  { type:'svg', label:'Fibonacci',
+    svg:`<svg viewBox="-55 -55 110 110" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
       <path d="M 0,0 A 8,8 0 0,1 8,0 A 13,13 0 0,0 8,-13 A 21,21 0 0,1 -13,-13 A 34,34 0 0,0 -13,21 A 55,55 0 0,1 42,21"/>
-      <circle cx="0" cy="0" r="1.5" fill="rgba(255,255,255,0.4)" stroke="none"/>
-    </svg>`
-  },
-  {
-    type: 'svg', label: 'Eye',
-    svg: `<svg viewBox="-60 -40 120 80" width="88" height="60" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
-      <path d="M -52,0 Q 0,-34 52,0 Q 0,34 -52,0 Z"/>
-      <circle cx="0" cy="0" r="16"/>
+      <circle cx="0" cy="0" r="1.5" fill="rgba(255,255,255,0.45)" stroke="none"/></svg>` },
+  { type:'svg', label:'Eye of Providence',
+    svg:`<svg viewBox="-62 -42 124 84" width="88" height="60" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="0.75">
+      <path d="M -54,0 Q 0,-36 54,0 Q 0,36 -54,0 Z"/>
+      <circle cx="0" cy="0" r="17"/>
       <circle cx="0" cy="0" r="6" fill="rgba(255,255,255,0.25)" stroke="none"/>
-      <circle cx="4" cy="-4" r="2.5" fill="rgba(255,255,255,0.5)" stroke="none"/>
-    </svg>`
-  },
+      <circle cx="5" cy="-5" r="2.5" fill="rgba(255,255,255,0.5)" stroke="none"/></svg>` },
+  { type:'svg', label:'Triquetra',
+    svg:`<svg viewBox="-55 -55 110 110" width="88" height="88" fill="none" stroke="rgba(255,255,255,0.42)" stroke-width="0.75">
+      <path d="M 0,-38 A 32,32 0 0,1 33,19 A 32,32 0 0,1 -33,19 A 32,32 0 0,1 0,-38 Z"/>
+      <circle cx="0" cy="0" r="22" opacity="0.3"/>
+      <circle cx="0" cy="-38" r="5" fill="none" opacity="0.5"/>
+      <circle cx="33" cy="19" r="5" fill="none" opacity="0.5"/>
+      <circle cx="-33" cy="19" r="5" fill="none" opacity="0.5"/></svg>` },
 
-  // Text / concept cards
-  {
-    type: 'text', label: 'Thesis', serif: true,
-    text: '"The money is made owning bottlenecks, not end products."'
-  },
-  {
-    type: 'text', label: 'Doctrine', mono: true,
-    text: 'OWN THE\nCHOKEPOINT\nNOT THE\nPRODUCT'
-  },
-  {
-    type: 'text', label: 'State', mono: true,
-    text: 'CONSCIOUSNESS\nLEVEL 32.25\n\nCOSMIC\nTRANSCENDENCE'
-  },
+  // Text
+  { type:'text', label:'Thesis', serif:true,
+    text:'"The money is made owning bottlenecks, not end products."' },
+  { type:'text', label:'Doctrine', mono:true,
+    text:'OWN THE\nCHOKEPOINT\nNOT THE\nPRODUCT' },
+  { type:'text', label:'State', mono:true,
+    text:'CONSCIOUSNESS\nLEVEL 32.25\n\nCOSMIC\nTRANSCENDENCE' },
+  { type:'text', label:'Prediction', mono:true,
+    text:'88.2%\nACCURACY\n\n76 ACTIVE\nPREDICTIONS' },
 
-  // Symbol cards
-  { type: 'symbol', label: 'Infinity',  symbol: '∞' },
-  { type: 'symbol', label: 'Delta',     symbol: 'Δ' },
-  { type: 'symbol', label: 'Omega',     symbol: 'Ω' },
+  // Symbols
+  { type:'symbol', label:'Infinity', symbol:'∞' },
+  { type:'symbol', label:'Delta',    symbol:'Δ' },
+  { type:'symbol', label:'Omega',    symbol:'Ω' },
+  { type:'symbol', label:'Phi',      symbol:'φ' },
 
-  // Color field cards
-  { type: 'field', label: 'Deep Space', gradient: 'linear-gradient(160deg, #0a1628 0%, #0d2441 50%, #071220 100%)' },
-  { type: 'field', label: 'Amber',      gradient: 'linear-gradient(150deg, #1a0e00 0%, #2a1a00 50%, #0f0800 100%)' },
-  { type: 'field', label: 'Void',       gradient: 'linear-gradient(135deg, #08080e 0%, #0e0e1a 60%, #060610 100%)' },
+  // Color fields
+  { type:'field', label:'Deep Space', gradient:'linear-gradient(160deg,#0a1628,#0d2441,#071220)' },
+  { type:'field', label:'Amber Void', gradient:'linear-gradient(150deg,#1a0e00,#2a1a00,#0f0800)' },
+  { type:'field', label:'Aether',     gradient:'linear-gradient(135deg,#08080e,#0e0e1a,#060610)' },
 ];
 
-// ─── Card instances ──────────────────────────────────────────────────────────
+// ─── Build cards ─────────────────────────────────────────────────────────────
 
+const stage = document.getElementById('stage');
 const cards = [];
 
 function buildCards() {
@@ -275,13 +328,11 @@ function buildCards() {
     const el = document.createElement('div');
     el.className = 'card';
 
-    // Index label
     const idx = document.createElement('div');
     idx.className = 'card-index';
     idx.textContent = String(i+1).padStart(2,'0');
     el.appendChild(idx);
 
-    // Content
     if (def.type === 'svg') {
       el.innerHTML += def.svg;
     } else if (def.type === 'text') {
@@ -301,32 +352,28 @@ function buildCards() {
       el.appendChild(f);
     }
 
-    // Label
     const lbl = document.createElement('div');
     lbl.className = 'card-label';
     lbl.textContent = def.label.toUpperCase();
     el.appendChild(lbl);
 
-    el.addEventListener('click', () => onCardClick(card));
-
     stage.appendChild(el);
 
-    // Physics state
     const angle = (i / CARD_DEFS.length) * TAU;
-    const r     = Math.min(W, H) * 0.28;
+    const r     = Math.min(W,H) * 0.27;
     const card  = {
       el, def, i,
-      x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r,
-      hx: cx + Math.cos(angle)*r, hy: cy + Math.sin(angle)*r,
-      vx: 0, vy: 0,
-      rotX: 0, rotY: 0, rotZ: 0,
-      scale: 1,
-      depth: 0.8 + Math.random() * 0.4,
-      phase: Math.random() * TAU,
-      floatAmp: 4 + Math.random() * 6,
-      floatFreq: 0.003 + Math.random() * 0.004,
-      active: false,
-      flipped: false,
+      x: cx + Math.cos(angle)*r,
+      y: cy + Math.sin(angle)*r,
+      hx: cx + Math.cos(angle)*r,
+      hy: cy + Math.sin(angle)*r,
+      vx:0, vy:0,
+      rotX:0, rotY:0, rotZ:0,
+      scale:1,
+      depth: 0.8 + Math.random()*0.4,
+      phase: Math.random()*TAU,
+      floatAmp: 4 + Math.random()*6,
+      floatFreq: 0.003 + Math.random()*0.004,
     };
     cards.push(card);
   });
@@ -335,267 +382,397 @@ function buildCards() {
 // ─── Arrangements ────────────────────────────────────────────────────────────
 
 const arrangements = {
-  drift(cards) {
-    cards.forEach((c, i) => {
-      const a = (i / cards.length) * TAU + t * 0.00015;
-      const r = Math.min(W,H) * 0.27;
+  drift(cards, t) {
+    cards.forEach((c,i) => {
+      const a = (i/cards.length)*TAU + t*0.00012;
+      const r = Math.min(W,H)*0.27;
       c.hx = cx + Math.cos(a)*r;
       c.hy = cy + Math.sin(a)*r;
     });
   },
   grid(cards) {
     const cols = Math.ceil(Math.sqrt(cards.length));
-    const rows = Math.ceil(cards.length / cols);
-    const pw   = 180, ph = 250;
-    const offX = -(cols-1)*pw/2, offY = -(rows-1)*ph/2;
+    const rows = Math.ceil(cards.length/cols);
+    const pw=180, ph=250;
+    const ox = -(cols-1)*pw/2, oy = -(rows-1)*ph/2;
     cards.forEach((c,i) => {
-      c.hx = cx + offX + (i % cols) * pw;
-      c.hy = cy + offY + Math.floor(i/cols) * ph;
+      c.hx = cx + ox + (i%cols)*pw;
+      c.hy = cy + oy + Math.floor(i/cols)*ph;
+      c.rotZ = 0;
     });
   },
   fan(cards) {
-    const total = cards.length;
-    const fanW  = Math.min(W*0.85, total*52);
+    const n = cards.length;
+    const fw = Math.min(W*0.88, n*50);
     cards.forEach((c,i) => {
-      const pct  = total > 1 ? i/(total-1) : 0.5;
-      const x    = cx - fanW/2 + pct*fanW;
-      const arc  = Math.sin(pct*Math.PI) * -H*0.18;
-      const rz   = (pct-0.5) * 32;
-      c.hx = x; c.hy = cy*1.1 + arc;
-      c.rotZ = rz;
+      const p = n>1 ? i/(n-1) : 0.5;
+      c.hx = cx - fw/2 + p*fw;
+      c.hy = cy*1.12 + Math.sin(p*Math.PI)*-H*0.16;
+      c.rotZ = (p-0.5)*30;
     });
   },
   stack(cards) {
     cards.forEach((c,i) => {
-      c.hx = cx + (i-cards.length/2)*2.5;
-      c.hy = cy + (i-cards.length/2)*1.5;
-      c.rotZ = (i - cards.length/2) * 4;
+      c.hx = cx + (i-cards.length/2)*2.2;
+      c.hy = cy + (i-cards.length/2)*1.2;
+      c.rotZ = (i-cards.length/2)*3.5;
     });
   },
   spiral(cards) {
     cards.forEach((c,i) => {
-      const a = i * 0.72 * TAU;
-      const r = 22 + i * 18;
+      const a = i*0.72*TAU;
+      const r = 20 + i*17;
       c.hx = cx + Math.cos(a)*r;
       c.hy = cy + Math.sin(a)*r;
+      c.rotZ = 0;
     });
   },
   diagonal(cards) {
-    const total = cards.length;
+    const n = cards.length;
     cards.forEach((c,i) => {
-      const pct = i/(total-1);
-      c.hx = W*0.12 + pct*(W*0.76);
-      c.hy = H*0.15 + pct*(H*0.70);
-      c.rotZ = -8 + pct*16;
+      const p = i/(n-1);
+      c.hx = W*0.11 + p*W*0.78;
+      c.hy = H*0.14 + p*H*0.72;
+      c.rotZ = -10 + p*20;
     });
   },
 };
 
-const arrangementKeys = Object.keys(arrangements);
-let arrangementIdx = 0;
+const ARR_KEYS = Object.keys(arrangements);
+let arrIdx = 0;
 
 function setArrangement(name) {
   currentArrangement = name;
-  document.getElementById('modeVal').textContent = name.toUpperCase();
-  // Clear rotZ from fan/stack/diagonal if switching away
-  if (name === 'grid' || name === 'drift' || name === 'spiral') {
+  // clear rotZ for clean layouts
+  if (['grid','drift','spiral'].includes(name))
     cards.forEach(c => { c.rotZ = 0; });
-  }
+  document.getElementById('arrval').textContent = name.toUpperCase();
 }
 
-// ─── Card interaction ────────────────────────────────────────────────────────
+// ─── Physics ─────────────────────────────────────────────────────────────────
 
-function onCardClick(card) {
-  card.flipped = !card.flipped;
-  card.active  = card.flipped;
-  card.el.classList.toggle('active', card.active);
-  scatterT = 0.5;
-}
+const K = 0.055, DMP = 0.78;
 
-function scatter() {
-  scatterT = 1.0;
+function tick(t) {
+  arrangements[currentArrangement](cards, t);
+  const mx = pointer.x, my = pointer.y;
+  const spd = pointer.speed;
+
   cards.forEach(c => {
-    const angle = Math.atan2(c.y - mouse.y, c.x - mouse.x);
-    const force = 8 + Math.random() * 10;
-    c.vx += Math.cos(angle) * force;
-    c.vy += Math.sin(angle) * force;
+    if (c === grabbedCard) {
+      // Grabbed: follow pointer directly
+      c.vx = (mx - c.x) * 0.35;
+      c.vy = (my - c.y) * 0.35;
+      c.x += c.vx; c.y += c.vy;
+      c.rotX = c.rotX * 0.85;
+      c.rotY = c.rotY * 0.85;
+      c.scale = c.scale * 0.9 + 1.08 * 0.1;
+    } else {
+      // Spring toward home
+      c.vx = (c.vx + (c.hx - c.x) * K * (0.7 + 0.5*c.depth)) * DMP;
+      c.vy = (c.vy + (c.hy - c.y) * K * (0.7 + 0.5*c.depth)) * DMP;
+
+      // Mouse/hand influence
+      const dx = mx - c.x, dy = my - c.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      const infl = Math.max(0, 1 - dist/220);
+
+      if (pullMode && infl > 0.1) {
+        c.vx += dx * 0.035 * infl;
+        c.vy += dy * 0.035 * infl;
+      } else if (spd > 3.5 && infl > 0.04) {
+        const ang = Math.atan2(dy, dx);
+        const push = spd * 0.22 * infl;
+        c.vx -= Math.cos(ang) * push;
+        c.vy -= Math.sin(ang) * push;
+      }
+
+      c.x += c.vx; c.y += c.vy;
+
+      // 3D tilt
+      const tilt = Math.min(infl * 16, 11);
+      c.rotX = c.rotX * 0.88 + (-((my - cy)/(H/2)) * tilt) * 0.12;
+      c.rotY = c.rotY * 0.88 + ( ((mx - cx)/(W/2)) * tilt) * 0.12;
+      c.scale = c.scale * 0.93 + (1 + infl*0.05) * 0.07;
+    }
+
+    // Float
+    const fx = Math.cos(t*c.floatFreq + c.phase) * c.floatAmp * 0.4;
+    const fy = Math.sin(t*c.floatFreq*1.3 + c.phase) * c.floatAmp;
+
+    const near = Math.sqrt((mx-c.x)**2 + (my-c.y)**2) < 220;
+    c.el.classList.toggle('hovered', near && c !== grabbedCard);
+    c.el.classList.toggle('grabbed', c === grabbedCard);
+
+    c.el.style.transform =
+      `translate(calc(${c.x+fx}px - 50%), calc(${c.y+fy}px - 50%))
+       rotateX(${c.rotX.toFixed(2)}deg)
+       rotateY(${c.rotY.toFixed(2)}deg)
+       rotateZ(${c.rotZ.toFixed(2)}deg)
+       scale(${c.scale.toFixed(4)})`;
+    c.el.style.opacity  = (0.5 + c.depth * 0.5).toFixed(2);
+    c.el.style.zIndex   = Math.round(c.depth * 10 + (c === grabbedCard ? 200 : 0));
   });
 }
 
-// ─── Physics tick ────────────────────────────────────────────────────────────
+// ─── Nearest card ────────────────────────────────────────────────────────────
 
-const K  = 0.055;  // spring stiffness
-const DMP = 0.78;  // damping
+function nearestCard(x, y, maxDist=160) {
+  let best = null, bestD = maxDist;
+  cards.forEach(c => {
+    const d = Math.sqrt((c.x-x)**2 + (c.y-y)**2);
+    if (d < bestD) { bestD = d; best = c; }
+  });
+  return best;
+}
 
-function tick() {
-  const mx = mouse.x, my = mouse.y;
-  const mspeed = mouse.speed;
+// ─── Scatter ─────────────────────────────────────────────────────────────────
 
-  arrangements[currentArrangement](cards);
-
-  cards.forEach((c, i) => {
-    // Spring toward home
-    const dx = c.hx - c.x;
-    const dy = c.hy - c.y;
-    const k  = K * (0.7 + 0.6 * c.depth);
-    c.vx = (c.vx + dx * k) * DMP;
-    c.vy = (c.vy + dy * k) * DMP;
-
-    // Mouse influence
-    const mdx  = mx - c.x, mdy = my - c.y;
-    const mdist = Math.sqrt(mdx*mdx + mdy*mdy);
-    const mInfl = Math.max(0, 1 - mdist/240);
-
-    if (pullMode && mInfl > 0.1) {
-      // Pull cards toward mouse when holding
-      c.vx += mdx * 0.04 * mInfl;
-      c.vy += mdy * 0.04 * mInfl;
-    } else if (mspeed > 4 && mInfl > 0.05) {
-      // Repel on fast movement
-      const ang = Math.atan2(mdy, mdx);
-      const push = mspeed * 0.25 * mInfl;
-      c.vx -= Math.cos(ang) * push;
-      c.vy -= Math.sin(ang) * push;
-    }
-
-    // Ambient float
-    const floatX = Math.cos(t * c.floatFreq + c.phase) * c.floatAmp * 0.4;
-    const floatY = Math.sin(t * c.floatFreq * 1.3 + c.phase) * c.floatAmp;
-
-    c.x += c.vx;
-    c.y += c.vy;
-
-    // 3D tilt toward mouse
-    const tiltStrength = Math.min(mInfl * 18, 12);
-    const targetRX = -((mdy / (H/2)) * tiltStrength);
-    const targetRY =  ((mdx / (W/2)) * tiltStrength);
-    c.rotX = c.rotX * 0.88 + targetRX * 0.12;
-    c.rotY = c.rotY * 0.88 + targetRY * 0.12;
-
-    // Scale slightly on hover proximity
-    const targetScale = 1 + mInfl * 0.06;
-    c.scale = c.scale * 0.92 + targetScale * 0.08;
-
-    // Hover class
-    c.el.classList.toggle('hovered', mInfl > 0.55);
-
-    // Apply transform
-    const fx = c.x + floatX;
-    const fy = c.y + floatY;
-    c.el.style.transform =
-      `translate(calc(${fx}px - 50%), calc(${fy}px - 50%))
-       rotateX(${c.rotX.toFixed(2)}deg)
-       rotateY(${c.rotY.toFixed(2)}deg)
-       rotateZ(${(c.rotZ).toFixed(2)}deg)
-       scale(${c.scale.toFixed(4)})`;
-
-    // Depth-based opacity
-    c.el.style.opacity = (0.55 + c.depth * 0.45).toFixed(2);
-    c.el.style.zIndex  = Math.round(c.depth * 10 + (pullMode && mInfl > 0.3 ? 20 : 0));
+function scatter() {
+  cards.forEach(c => {
+    const ang = Math.atan2(c.y - pointer.y, c.x - pointer.x);
+    const f   = 7 + Math.random()*10;
+    c.vx += Math.cos(ang)*f; c.vy += Math.sin(ang)*f;
   });
 }
 
 // ─── Cursor ──────────────────────────────────────────────────────────────────
 
-let cursorX = 0, cursorY = 0, ringX = 0, ringY = 0;
+const cursorEl = document.getElementById('cursor');
+const ringEl   = document.getElementById('cursor-ring');
+const handPtr  = document.getElementById('hand-pointer');
+let curX=cx,curY=cy,rX=cx,rY=cy;
 
 function moveCursor() {
-  cursorX += (mouse.x - cursorX) * 0.9;
-  cursorY += (mouse.y - cursorY) * 0.9;
-  ringX   += (mouse.x - ringX)   * 0.18;
-  ringY   += (mouse.y - ringY)   * 0.18;
-  cursor.style.left = cursorX + 'px';
-  cursor.style.top  = cursorY + 'px';
-  ring.style.left   = ringX + 'px';
-  ring.style.top    = ringY + 'px';
+  curX += (pointer.x - curX)*0.9; curY += (pointer.y - curY)*0.9;
+  rX   += (pointer.x - rX)*0.16;  rY   += (pointer.y - rY)*0.16;
+  cursorEl.style.left = curX+'px'; cursorEl.style.top = curY+'px';
+  ringEl.style.left   = rX+'px';   ringEl.style.top  = rY+'px';
+  ringEl.style.width  = ringEl.style.height =
+    pullMode ? '60px' : pointer.speed > 4 ? '18px' : '36px';
+  ringEl.style.borderColor =
+    pullMode ? 'rgba(140,210,255,0.4)' : 'rgba(255,255,255,0.22)';
+}
 
-  if (pullMode) {
-    ring.style.width  = ring.style.height = '64px';
-    ring.style.borderColor = 'rgba(255,255,255,0.35)';
-  } else if (mouse.speed > 5) {
-    ring.style.width  = ring.style.height = '20px';
-    ring.style.borderColor = 'rgba(255,255,255,0.15)';
+// ─── Hand tracking (MediaPipe) ────────────────────────────────────────────────
+
+const videoEl  = document.getElementById('cam-video');
+const camCanvas = document.getElementById('cam-canvas');
+const camCtx   = camCanvas.getContext('2d');
+
+const CONNECTIONS = [
+  [0,1],[1,2],[2,3],[3,4],
+  [0,5],[5,6],[6,7],[7,8],
+  [0,9],[9,10],[10,11],[11,12],
+  [0,13],[13,14],[14,15],[15,16],
+  [0,17],[17,18],[18,19],[19,20],
+  [5,9],[9,13],[13,17],
+];
+
+function detectGesture(lm) {
+  const ext = (tip, mcp) => lm[tip].y < lm[mcp].y - 0.04;
+  const ie = ext(8,5), me = ext(12,9), re = ext(16,13), pe = ext(20,17);
+  const spread = [ie,me,re,pe].filter(Boolean).length;
+  const td = Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y);
+  if (td < 0.065) return spread >= 3 ? 'ok' : 'pinch';
+  if (ie && pe && !me && !re) return 'rock';
+  if (ie && me && !re && !pe)  return 'peace';
+  if (ie && !me && !re && !pe) return 'point';
+  if (spread === 4) return 'open';
+  if (spread === 0) return 'fist';
+  return 'none';
+}
+
+const GESTURE_ARR = {
+  open:'drift', fist:'stack', peace:'grid',
+  rock:'fan', point:'spiral', ok:'diagonal',
+};
+
+function onHandResults(results) {
+  // Draw on small cam canvas
+  const cw = camCanvas.width, ch = camCanvas.height;
+  camCtx.clearRect(0,0,cw,ch);
+  camCtx.drawImage(results.image, 0, 0, cw, ch);
+
+  if (!results.multiHandLandmarks || results.multiHandLandmarks.length === 0) {
+    handActive = false;
+    handPtr.style.display = 'none';
+    document.getElementById('cam-status').innerHTML = '<span class="dot" style="background:rgba(200,80,80,0.7)"></span>SEARCHING';
+    return;
+  }
+
+  handActive = true;
+  document.getElementById('cam-status').innerHTML = '<span class="dot"></span>TRACKING';
+
+  const lm = results.multiHandLandmarks[0];
+
+  // Draw skeleton on small cam
+  camCtx.save();
+  CONNECTIONS.forEach(([a,b]) => {
+    camCtx.beginPath();
+    // Note: cam canvas is CSS-flipped so we don't flip coords here
+    camCtx.moveTo(lm[a].x * cw, lm[a].y * ch);
+    camCtx.lineTo(lm[b].x * cw, lm[b].y * ch);
+    camCtx.strokeStyle = 'rgba(140,210,255,0.55)';
+    camCtx.lineWidth = 1.2;
+    camCtx.stroke();
+  });
+  [4,8,12,16,20].forEach(i => {
+    camCtx.beginPath();
+    camCtx.arc(lm[i].x*cw, lm[i].y*ch, 3, 0, TAU);
+    camCtx.fillStyle = 'rgba(200,240,255,0.9)';
+    camCtx.fill();
+  });
+  camCtx.beginPath();
+  camCtx.arc(lm[0].x*cw, lm[0].y*ch, 4, 0, TAU);
+  camCtx.fillStyle = 'rgba(100,180,255,0.8)';
+  camCtx.fill();
+  camCtx.restore();
+
+  // Map index tip to screen (mirror x because camera is front-facing)
+  const ix = (1 - lm[8].x) * W;
+  const iy = lm[8].y * H;
+
+  // Update global pointer
+  pointer.px = pointer.x; pointer.py = pointer.y;
+  pointer.x  = ix; pointer.y = iy;
+  pointer.vx = pointer.x - pointer.px;
+  pointer.vy = pointer.y - pointer.py;
+  pointer.speed = Math.sqrt(pointer.vx**2 + pointer.vy**2);
+
+  // Full-screen hand pointer dot
+  handPtr.style.display = 'block';
+  handPtr.style.left = ix + 'px';
+  handPtr.style.top  = iy + 'px';
+
+  // Gesture
+  const g = detectGesture(lm);
+  document.getElementById('gval').textContent = g.toUpperCase();
+
+  if (g === lastGesture) {
+    gestureHold++;
   } else {
-    ring.style.width  = ring.style.height = '36px';
-    ring.style.borderColor = 'rgba(255,255,255,0.22)';
+    gestureHold = 0;
+    lastGesture = g;
+  }
+
+  if (gestureHold === 5 && g !== committedGesture) {
+    committedGesture = g;
+
+    // Pinch = grab nearest card
+    if (g === 'pinch' || g === 'ok') {
+      const c = nearestCard(ix, iy, 200);
+      if (c) grabbedCard = c;
+      pullMode = true;
+      handPtr.style.width = handPtr.style.height = '8px';
+      handPtr.style.borderColor = 'rgba(200,240,255,0.8)';
+    } else {
+      grabbedCard = null;
+      pullMode = false;
+      handPtr.style.width = handPtr.style.height = '16px';
+      handPtr.style.borderColor = 'rgba(140,210,255,0.5)';
+
+      // Open palm = scatter
+      if (g === 'open' && committedGesture !== 'open') scatter();
+
+      // Map gesture → arrangement
+      if (GESTURE_ARR[g]) setArrangement(GESTURE_ARR[g]);
+    }
+  }
+
+  // Release on non-pinch
+  if (g !== 'pinch' && g !== 'ok') {
+    grabbedCard = null;
+    pullMode = false;
   }
 }
 
-// ─── Main loop ───────────────────────────────────────────────────────────────
+// ─── Camera start ────────────────────────────────────────────────────────────
+
+let mpCamera = null;
+
+function startCamera() {
+  const hands = new Hands({
+    locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
+  });
+  hands.setOptions({
+    maxNumHands: 1,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.72,
+    minTrackingConfidence: 0.6,
+  });
+  hands.onResults(onHandResults);
+
+  mpCamera = new Camera(videoEl, {
+    onFrame: async () => {
+      camCanvas.width  = videoEl.videoWidth  || 320;
+      camCanvas.height = videoEl.videoHeight || 240;
+      await hands.send({ image: videoEl });
+    },
+    width: 640, height: 480,
+  });
+
+  mpCamera.start().then(() => {
+    document.getElementById('cam-wrap').style.opacity = '0.88';
+    document.getElementById('perm-overlay').style.opacity = '0';
+    setTimeout(() => document.getElementById('perm-overlay').style.display = 'none', 650);
+  }).catch(() => {
+    skipCamera();
+  });
+}
+
+function skipCamera() {
+  document.getElementById('perm-overlay').style.opacity = '0';
+  setTimeout(() => document.getElementById('perm-overlay').style.display = 'none', 650);
+}
+
+document.getElementById('perm-btn').addEventListener('click', startCamera);
+document.getElementById('skip-btn').addEventListener('click',  skipCamera);
+
+// ─── Mouse fallback ───────────────────────────────────────────────────────────
+
+window.addEventListener('mousemove', e => {
+  if (handActive) return;
+  pointer.px = pointer.x; pointer.py = pointer.y;
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  pointer.vx = pointer.x - pointer.px; pointer.vy = pointer.y - pointer.py;
+  pointer.speed = Math.sqrt(pointer.vx**2 + pointer.vy**2);
+});
+window.addEventListener('mousedown', () => { if (!handActive) pullMode = true; });
+window.addEventListener('mouseup',   () => { if (!handActive) { pullMode = false; grabbedCard = null; } });
+window.addEventListener('click', e => {
+  if (!handActive && (e.target === document.body || e.target === stage)) scatter();
+});
+window.addEventListener('dblclick', () => {
+  arrIdx = (arrIdx+1) % ARR_KEYS.length;
+  setArrangement(ARR_KEYS[arrIdx]);
+});
+window.addEventListener('keydown', e => {
+  const map = {'1':'drift','2':'grid','3':'fan','4':'stack','5':'spiral','6':'diagonal'};
+  if (map[e.key]) setArrangement(map[e.key]);
+  if (e.key===' ') { e.preventDefault(); scatter(); }
+});
+window.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const t = e.touches[0];
+  if (handActive) return;
+  pointer.px = pointer.x; pointer.py = pointer.y;
+  pointer.x = t.clientX; pointer.y = t.clientY;
+  pointer.vx = pointer.x-pointer.px; pointer.vy = pointer.y-pointer.py;
+  pointer.speed = Math.sqrt(pointer.vx**2+pointer.vy**2);
+},{passive:false});
+window.addEventListener('resize', () => {
+  W=innerWidth; H=innerHeight; cx=W/2; cy=H/2;
+});
+
+// ─── Main loop ────────────────────────────────────────────────────────────────
 
 function loop(ts) {
   requestAnimationFrame(loop);
-  t = ts;
-  frame++;
-  scatterT = Math.max(0, scatterT - 0.02);
-  tick();
+  loopT = ts; frame++;
+  tick(ts);
   moveCursor();
 }
-
-// ─── Input ───────────────────────────────────────────────────────────────────
-
-window.addEventListener('mousemove', e => {
-  mouse.px = mouse.x; mouse.py = mouse.y;
-  mouse.x = e.clientX; mouse.y = e.clientY;
-  mouse.vx = mouse.x - mouse.px;
-  mouse.vy = mouse.y - mouse.py;
-  mouse.speed = Math.sqrt(mouse.vx*mouse.vx + mouse.vy*mouse.vy);
-});
-
-window.addEventListener('mousedown', () => { pullMode = true; });
-window.addEventListener('mouseup',   () => { pullMode = false; });
-
-window.addEventListener('click', e => {
-  if (e.target === document.body || e.target === stage) {
-    scatter();
-  }
-});
-
-window.addEventListener('dblclick', () => {
-  arrangementIdx = (arrangementIdx + 1) % arrangementKeys.length;
-  setArrangement(arrangementKeys[arrangementIdx]);
-});
-
-// Touch
-window.addEventListener('touchmove', e => {
-  e.preventDefault();
-  const touch = e.touches[0];
-  mouse.px = mouse.x; mouse.py = mouse.y;
-  mouse.x  = touch.clientX; mouse.y = touch.clientY;
-  mouse.vx = mouse.x - mouse.px; mouse.vy = mouse.y - mouse.py;
-  mouse.speed = Math.sqrt(mouse.vx*mouse.vx + mouse.vy*mouse.vy);
-}, {passive:false});
-
-window.addEventListener('touchstart', e => {
-  const touch = e.touches[0];
-  mouse.x = touch.clientX; mouse.y = touch.clientY;
-  if (e.touches.length === 2) {
-    arrangementIdx = (arrangementIdx + 1) % arrangementKeys.length;
-    setArrangement(arrangementKeys[arrangementIdx]);
-  }
-});
-
-// Keyboard shortcuts
-window.addEventListener('keydown', e => {
-  const map = {
-    '1':'drift','2':'grid','3':'fan',
-    '4':'stack','5':'spiral','6':'diagonal',
-  };
-  if (map[e.key]) setArrangement(map[e.key]);
-  if (e.key === ' ') { e.preventDefault(); scatter(); }
-});
-
-window.addEventListener('resize', () => {
-  W = window.innerWidth; H = window.innerHeight;
-  cx = W/2; cy = H/2;
-});
-
-// Fade hint out
-setTimeout(() => {
-  document.getElementById('hint').style.opacity = '0';
-}, 5000);
-
-// ─── Init ────────────────────────────────────────────────────────────────────
 
 buildCards();
 setArrangement('drift');
